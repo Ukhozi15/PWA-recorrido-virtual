@@ -94,3 +94,14 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+body {
+  margin: 0;
+  overflow: hidden; /* Elimina las barras de desplazamiento */
+}
+
+#webglCanvas {
+  display: block; /* Asegura que el canvas no tenga espacio extra */
+  width: 100vw; /* Ocupa el 100% del ancho de la ventana */
+  height: 100vh; /* Ocupa el 100% del alto de la ventana */
+}
