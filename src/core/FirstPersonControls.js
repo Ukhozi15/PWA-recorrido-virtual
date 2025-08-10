@@ -1,280 +1,349 @@
 // src/core/FirstPersonControls.js
 
-import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
 import * as THREE from 'three';
+import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
+import { showModal } from '../ui/UIManager.js';
 
-let controls;
-let camera;
-let scene;
-let moveForward = false;
-let moveBackward = false;
-let moveLeft = false;
-let moveRight = false;
-let moveUp = false; // Opcional: para saltar o volar
-let moveDown = false; // Opcional: para agacharse o bajar
+export class FirstPersonControls {
+    constructor(camera, domElement) {
+        this.camera = camera;
+        this.domElement = domElement;
+        this.controls = new PointerLockControls(camera, domElement);
 
+        this.playerHeight = 1.7;
+        this.velocity = new THREE.Vector3();
+        this.direction = new THREE.Vector3();
+        this.gravity = 30.0;
+        this.acceleration = 50.0;
+        this.deceleration = 10.0;
+        this.walkingSpeed = 5.0;
 
+        this.collisionObjects = [];
+        this.maxStepHeight = 0.4;
+        this.downRaycaster = new THREE.Raycaster();
+        this.horizontalRaycaster = new THREE.Raycaster();
+        
+        // --- ✨ NUEVO: Raycaster para detectar obstáculos a nivel del cuerpo ---
+        // Este raycaster evitará que el jugador suba a objetos como mesas y sillas.
+        this.bodyRaycaster = new THREE.Raycaster();
 
-const speed = 5.0; // Velocidad de movimiento en unidades por segundo (ej. 5 metros/segundo)
+        this.interactionRaycaster = new THREE.Raycaster();
+        this.interactiveObject = null;
+        this.interactionDistance = 3;
 
-const walkingSpeed = 5.0; // Velocidad máxima de "caminar"
-const acceleration = 50.0; // Aceleración en unidades/segundo^2
-const deceleration = 10.0; // Deceleración en unidades/segundo^2
+        this.moveForward = false;
+        this.moveBackward = false;
+        this.moveLeft = false;
+        this.moveRight = false;
+        this.isGrounded = false;
 
-// Vectores para las velocidades actuales en los ejes X, Y, Z locales de la cámara
-const velocity = new THREE.Vector3();
-const direction = new THREE.Vector3(); // Vector que representa la dirección deseada (normalized)
+        this.headBobFrequency = 8;
+        this.headBobAmplitude = 0.05;
+        this.headBobTimer = 0;
+        this.headBobOffset = 0;
+        
+        this.isTouchDevice = 'ontouchstart' in window;
+        this.joystick = {
+            active: false,
+            touchId: null,
+            container: document.getElementById('joystick-container'),
+            thumb: document.getElementById('joystick-thumb'),
+            center: new THREE.Vector2(),
+            current: new THREE.Vector2()
+        };
+        this.look = {
+            active: false,
+            touchId: null,
+            start: new THREE.Vector2(),
+            current: new THREE.Vector2()
+        };
+        this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
+        this.minPolarAngle = 0;
+        this.maxPolarAngle = Math.PI;
 
-const gravity = 9.8; // Fuerza de la gravedad (metros/segundo^2)
-let isGrounded = false; // Indica si el jugador está tocando el suelo
+        this._setupEventListeners();
+    }
 
-// Variables para el Head Bob
-const headBobFrequency = 8; // Frecuencia del balanceo (más alto = más rápido)
-const headBobAmplitude = 0.05; // Amplitud del balanceo (más alto = más pronunciado)
-let headBobTimer = 0; // Temporizador para controlar la fase del head bob
-const cameraBaseY = 1.7; // Altura base de la cámara (altura de los ojos)
-
-const defaultFov = 75; // FOV por defecto
-const minFov = 30;     // FOV mínimo (más zoom-in)
-const maxFov = 100;    // FOV máximo (más zoom-out)
-const fovStep = 5;     // Cantidad de cambio de FOV por cada scroll
-
-/**
- * Inicializa los controles de primera persona.
- * @param {THREE.Camera} _camera - La cámara a controlar.
- * @param {HTMLElement} domElement - El elemento DOM al que se adjuntarán los controles (normalmente el canvas).
- * @param {THREE.Scene} _scene - La escena actual (necesaria para añadir la cámara a los controles).
- */
-export function initFirstPersonControls(_camera, domElement, _scene) {
-  camera = _camera;
-  scene = _scene;
-
-  // Instancia los PointerLockControls
-  controls = new PointerLockControls(camera, domElement);
-
-  // Agrega la cámara (que ahora está dentro de los controles) a la escena
-  scene.add(controls.object); // Ahora se usa .object directamente
-  // Añade un evento para activar los controles al hacer clic en el canvas
-  domElement.addEventListener(
-    "click",
-    () => {
-      controls.lock(); // Bloquea el puntero y activa los controles
-    },
-    false
-  );
-
-  // Wheel Zoom
-  domElement.addEventListener('wheel', (event) => {
-    // Solo aplica el zoom si los controles están bloqueados
-    if (controls.isLocked) {
-        event.preventDefault(); // Evita el scroll de la página
-        let newFov = camera.fov;
-
-        if (event.deltaY < 0) {
-            // Scroll hacia arriba (zoom-in, FOV más pequeño)
-            newFov = Math.max(minFov, camera.fov - fovStep);
-        } else {
-            // Scroll hacia abajo (zoom-out, FOV más grande)
-            newFov = Math.min(maxFov, camera.fov + fovStep);
-        }
-
-        // Si el FOV ha cambiado, actualiza la cámara
-        if (newFov !== camera.fov) {
-            camera.fov = newFov;
-            camera.updateProjectionMatrix(); // Importante: recalcula la proyección después de cambiar el FOV
-            console.log(`FOV actual: ${camera.fov}`);
+    setCollisionObjects(objects) {
+        this.collisionObjects = objects;
+        if (this.collisionObjects.length > 0) {
+            this._snapToGround();
         }
     }
-}, { passive: false }); // Usar { passive: false } es importante para que preventDefault funcione
-// ****************************************************
 
-  // Opcional: Escuchar eventos de bloqueo/desbloqueo
-  controls.addEventListener("lock", () => {
-    console.log("PointerLockControls Bloqueados");
-    // Aquí podrías mostrar un mensaje "Haz clic para salir" o pausar el juego
-  });
-
-  controls.addEventListener("unlock", () => {
-    console.log("PointerLockControls Desbloqueados");
-    // Aquí podrías mostrar el cursor y pausar el juego
-  });
-
-  
-
-  // Retorna los controles para que puedan ser usados desde fuera si es necesario
-  return controls;
-}
-
-/**
- * Actualiza los controles en cada frame de animación.
- * Por ahora, PointerLockControls maneja su propia actualización de rotación con los eventos del ratón.
- * Más adelante añadiremos la lógica de movimiento aquí.
- * @param {number} delta - El tiempo transcurrido desde el último frame (para movimiento independiente del FPS).
- */
-export function updateFirstPersonControls(delta) {
-    if (controls && controls.isLocked) {
-        // --- 1. Aplicar Desaceleración ---
-        velocity.x -= velocity.x * deceleration * delta;
-        velocity.z -= velocity.z * deceleration * delta;
-
-        // --- 2. Aplicar Gravedad ---
-        // Solo aplica gravedad si no estamos pidiendo volar hacia arriba y no estamos ya en el suelo
-        if (!moveUp && !isGrounded) {
-            velocity.y -= gravity * delta; // Aplicar fuerza hacia abajo
-        }
-
-        // --- 3. Establecer Dirección Deseada y Aceleración ---
-        direction.z = Number(moveForward) - Number(moveBackward);
-        direction.x = Number(moveRight) - Number(moveLeft);
-        direction.normalize(); // Normaliza para evitar movimiento diagonal más rápido
-
-        // Aceleración
-        if (moveForward || moveBackward) {
-            // Ajuste crucial aquí: el movimiento hacia adelante en THREE.JS translateZ es negativo
-            // Si direction.z es 1 (adelante), queremos que velocity.z se vuelva más negativo.
-            // Si direction.z es -1 (atrás), queremos que velocity.z se vuelva más positivo.
-            velocity.z -= direction.z * acceleration * delta;
-        } else {
-            // Desaceleración en Z si no hay input frontal/trasero
-            velocity.z -= velocity.z * deceleration * delta;
-        }
-
-        if (moveLeft || moveRight) {
-            // Ajuste crucial aquí: el movimiento hacia la izquierda en THREE.JS translateX es negativo
-            // Si direction.x es 1 (derecha), queremos que velocity.x se vuelva más positivo.
-            // Si direction.x es -1 (izquierda), queremos que velocity.x se vuelva más negativo.
-            velocity.x -= direction.x * acceleration * delta; // <--- Este es el que necesitamos invertir
-        } else {
-            // Desaceleración en X si no hay input lateral
-            velocity.x -= velocity.x * deceleration * delta;
-        }
-        // Movimiento vertical (para "volar" o "saltar")
-        if (moveUp && isGrounded) { // Solo si estamos en el suelo, para saltar
-            velocity.y = 8; // Una fuerza de "salto" inicial
-            isGrounded = false; // Ya no estamos en el suelo
-        } else if (moveDown) {
-            velocity.y = -walkingSpeed; // Agacharse o bajar rápido
-        }
-
-
-        // --- 4. Limitar la Velocidad ---
-        velocity.x = Math.max(-walkingSpeed, Math.min(walkingSpeed, velocity.x));
-        velocity.z = Math.max(-walkingSpeed, Math.min(walkingSpeed, velocity.z));
-        // Para velocity.y, lo manejamos más con la gravedad y el salto.
-        // Podrías poner un límite máximo de caída si quisieras.
-
-
-        // --- 5. Mover la Cámara (Aplicar Velocidad) ---
-        // Mueve la cámara en su eje local 'x' (izquierda/derecha)
-        controls.object.translateX(velocity.x * delta);
-        // Mueve la cámara en su eje local 'z' (adelante/atrás)
-        controls.object.translateZ(velocity.z * delta);
-        // Mueve la cámara en su eje Y (arriba/abajo, relativo al mundo)
-        controls.object.position.y += velocity.y * delta;
-
-        // --- 6. Simular Suelo / Colisión Básica con el Suelo ---
-        // Si la cámara está por debajo de la altura base y se mueve hacia abajo
-        if (controls.object.position.y < cameraBaseY) {
-            controls.object.position.y = cameraBaseY; // La devuelve a la altura del suelo
-            velocity.y = 0; // Detiene el movimiento vertical
-            isGrounded = true; // El jugador está en el suelo
-        } else {
-            isGrounded = false;
-        }
-
-        // --- 7. Aplicar Head Bob (solo si el jugador se está moviendo horizontalmente) ---
-        // Comprueba si hay movimiento horizontal significativo
-        if (Math.abs(velocity.x) > 0.1 || Math.abs(velocity.z) > 0.1) {
-            headBobTimer += delta * headBobFrequency; // Incrementa el temporizador
-            // Calcula el desplazamiento vertical usando una función seno
-            camera.position.y = cameraBaseY + Math.sin(headBobTimer) * headBobAmplitude;
-            // Opcional: un pequeño balanceo lateral si quieres
-            // camera.position.x = controls.object.position.x + Math.sin(headBobTimer / 2) * headBobAmplitude * 0.5;
-        } else {
-            // Si no hay movimiento, la cámara vuelve suavemente a su posición base
-            camera.position.y = THREE.MathUtils.lerp(camera.position.y, cameraBaseY, 0.1); // Lerp para suavizar
-            headBobTimer = 0; // Reinicia el temporizador
-        }
-
-    } else {
-        // Si los controles no están bloqueados, restablecer la velocidad y posición para evitar movimientos bruscos al retomar
-        velocity.set(0, 0, 0);
-        camera.position.y = cameraBaseY; // Asegura que la cámara esté en su posición base al desbloquear
-        headBobTimer = 0;
+    getObject() {
+        return this.controls.object;
     }
-}
+    
+    get isLocked() {
+        return this.controls.isLocked || this.isTouchDevice;
+    }
 
-// *** Event Listeners para Teclado ***
+    update(delta) {
+        if (!this.isLocked) return;
 
-// Escucha el evento 'keydown' (cuando una tecla es presionada)
-document.addEventListener("keydown", (event) => {
-  // Usa un switch para manejar diferentes teclas de movimiento
-  switch (event.code) {
-    // Mover hacia adelante (tecla W)
-    case "KeyW":
-      moveForward = true;
-      break;
-    // Mover hacia la izquierda (tecla A)
-    case "KeyA":
-      moveLeft = true;
-      break;
-    // Mover hacia atrás (tecla S)
-    case "KeyS":
-      moveBackward = true;
-      break;
-    // Mover hacia la derecha (tecla D)
-    case "KeyD":
-      moveRight = true;
-      break;
-    // Mover hacia arriba (Espacio - opcional para saltar o "volar")
-    case "Space":
-      moveUp = true;
-      break;
-    // Mover hacia abajo (Shift Izquierdo o Ctrl Izquierdo - opcional para agacharse o "bajar")
-    case "ShiftLeft":
-    case "ControlLeft":
-      moveDown = true;
-      break;
-  }
-});
+        if (this.joystick.active) {
+            const joystickDelta = this.joystick.current.clone().sub(this.joystick.center);
+            const moveSpeed = joystickDelta.length() / (this.joystick.container.clientWidth / 2);
+            if (moveSpeed > 0.1) {
+                const angle = Math.atan2(joystickDelta.y, joystickDelta.x);
+                this.direction.z = -Math.sin(angle) * moveSpeed;
+                this.direction.x = -Math.cos(angle) * moveSpeed;
+            } else { this.direction.set(0,0,0); }
+        } else {
+            this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
+            this.direction.x = Number(this.moveRight) - Number(this.moveLeft);
+        }
+        this.direction.normalize();
 
-// Escucha el evento 'keyup' (cuando una tecla es liberada)
-document.addEventListener("keyup", (event) => {
-  // Usa un switch para restablecer el estado de las variables de movimiento
-  switch (event.code) {
-    // Detener movimiento hacia adelante (tecla W)
-    case "KeyW":
-      moveForward = false;
-      break;
-    // Detener movimiento hacia la izquierda (tecla A)
-    case "KeyA":
-      moveLeft = false;
-      break;
-    // Detener movimiento hacia atrás (tecla S)
-    case "KeyS":
-      moveBackward = false;
-      break;
-    // Detener movimiento hacia la derecha (tecla D)
-    case "KeyD":
-      moveRight = false;
-      break;
-    // Detener movimiento hacia arriba (Espacio)
-    case "Space":
-      moveUp = false;
-      break;
-    // Detener movimiento hacia abajo (Shift Izquierdo o Ctrl Izquierdo)
-    case "ShiftLeft":
-    case "ControlLeft":
-      moveDown = false;
-      break;
-  }
-});
+        this.controls.object.position.y -= this.headBobOffset;
+        this._updateGravity(delta);
 
-/**
- * Devuelve la instancia de los controles.
- * @returns {PointerLockControls}
- */
-export function getFirstPersonControls() {
-  // <--- Asegúrate que diga 'export function'
-  return controls;
+        this.velocity.x -= this.velocity.x * this.deceleration * delta;
+        this.velocity.z -= this.velocity.z * this.deceleration * delta;
+
+        if (this.direction.lengthSq() > 0) {
+             this.velocity.z -= this.direction.z * this.acceleration * delta;
+             this.velocity.x -= this.direction.x * this.acceleration * delta;
+        }
+        
+        this._handleHorizontalCollisions();
+
+        this.controls.moveRight(-this.velocity.x * delta);
+        this.controls.moveForward(-this.velocity.z * delta);
+        this.controls.object.position.y += this.velocity.y * delta;
+        
+        this._updateHeadBob(delta);
+        this.controls.object.position.y += this.headBobOffset;
+
+        this._checkForInteraction();
+    }
+
+    _snapToGround() {
+        const playerPosition = this.controls.object.position;
+        const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, 100, playerPosition.z), new THREE.Vector3(0, -1, 0));
+        const intersections = snapRaycaster.intersectObjects(this.collisionObjects, true);
+        if (intersections.length > 0) {
+            playerPosition.y = intersections[0].point.y + this.playerHeight;
+        }
+    }
+    
+    _checkForInteraction() {
+        if (!this.isLocked) return;
+        this.interactionRaycaster.setFromCamera(new THREE.Vector2(0, 0), this.camera);
+        const intersects = this.interactionRaycaster.intersectObjects(this.collisionObjects, true);
+        const interactionText = document.getElementById('interaction-text');
+        this.interactiveObject = null;
+
+        for (const intersect of intersects) {
+            if (intersect.distance < this.interactionDistance) {
+                const object = intersect.object;
+                if (object.name.startsWith("interactive_")) {
+                    this.interactiveObject = object;
+                    break;
+                }
+            }
+        }
+
+        if (interactionText) {
+            interactionText.classList.toggle('hidden', !this.interactiveObject);
+        }
+    }
+
+    _handleInteraction() {
+        if (this.interactiveObject) {
+            showModal(this.interactiveObject.name);
+
+            const eventData = {
+                objectId: this.interactiveObject.name,
+                position: this.controls.object.position.toArray()
+            };
+
+            const backendUrl = 'http://localhost:3001/api/interaction';
+
+            fetch(backendUrl, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(eventData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Error del servidor: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => console.log('Backend: Interacción registrada con éxito.', data))
+            .catch(error => console.error('Error al enviar la interacción al backend:', error));
+        }
+    }
+    
+    _updateGravity(delta) {
+        this.isGrounded = false;
+        const playerPosition = this.controls.object.position;
+        this.downRaycaster.set(playerPosition, new THREE.Vector3(0, -1, 0));
+        const intersections = this.downRaycaster.intersectObjects(this.collisionObjects, true);
+        if (intersections.length > 0 && intersections[0].distance <= this.playerHeight) {
+            playerPosition.y = intersections[0].point.y + this.playerHeight;
+            this.velocity.y = 0;
+            this.isGrounded = true;
+        }
+        if (!this.isGrounded) {
+            this.velocity.y -= this.gravity * delta;
+        }
+    }
+
+    // --- ✨ MÉTODO MODIFICADO ✨ ---
+    _handleHorizontalCollisions() {
+        const horizontalDirection = new THREE.Vector3(this.velocity.x, 0, this.velocity.z).normalize();
+        if (horizontalDirection.lengthSq() === 0) return;
+
+        const playerPosition = this.controls.object.position;
+        const collisionThreshold = 0.5;
+
+        // --- Verificación de obstáculos a nivel del cuerpo ---
+        // Se lanza un rayo desde la mitad de la altura del jugador para detectar paredes u objetos no escalables.
+        const bodyPosition = new THREE.Vector3(playerPosition.x, playerPosition.y - this.playerHeight / 2, playerPosition.z);
+        this.bodyRaycaster.set(bodyPosition, horizontalDirection);
+        const bodyIntersections = this.bodyRaycaster.intersectObjects(this.collisionObjects, true);
+
+        if (bodyIntersections.length > 0 && bodyIntersections[0].distance < collisionThreshold) {
+            // Si el rayo del cuerpo choca con algo muy cerca, es un obstáculo infranqueable.
+            // Se detiene el movimiento por completo y se sale de la función para evitar la lógica de "subir escalón".
+            this.velocity.x = 0;
+            this.velocity.z = 0;
+            return; 
+        }
+
+        // --- Lógica original para subir escalones (solo se ejecuta si no hay un obstáculo a nivel del cuerpo) ---
+        this.horizontalRaycaster.set(playerPosition, horizontalDirection);
+        const intersections = this.horizontalRaycaster.intersectObjects(this.collisionObjects, true);
+
+        if (intersections.length > 0 && intersections[0].distance < collisionThreshold) {
+            const contactPoint = intersections[0].point;
+            const groundHeightAtContact = this._getGroundHeight(contactPoint);
+            const currentGroundHeight = playerPosition.y - this.playerHeight;
+            const heightDifference = groundHeightAtContact - currentGroundHeight;
+
+            if (heightDifference > 0 && heightDifference < this.maxStepHeight) {
+                // Sube el escalón
+                playerPosition.y += heightDifference;
+            } else {
+                // Es una pared o un obstáculo demasiado alto, detente
+                this.velocity.x = 0;
+                this.velocity.z = 0;
+            }
+        }
+    }
+    
+    _getGroundHeight(position) {
+        const checkRaycaster = new THREE.Raycaster(new THREE.Vector3(position.x, this.camera.position.y + this.maxStepHeight, position.z), new THREE.Vector3(0, -1, 0));
+        const intersections = checkRaycaster.intersectObjects(this.collisionObjects, true);
+        return intersections.length > 0 ? intersections[0].point.y : -Infinity;
+    }
+    
+    _updateHeadBob(delta) {
+        if (this.isGrounded && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
+            this.headBobTimer += delta * this.headBobFrequency;
+            this.headBobOffset = Math.sin(this.headBobTimer) * this.headBobAmplitude;
+        } else {
+            this.headBobTimer = 0;
+            this.headBobOffset = 0;
+        }
+    }
+
+    _setupEventListeners() {
+        if (this.isTouchDevice) {
+            this.domElement.addEventListener('touchstart', this._onTouchStart.bind(this));
+            this.domElement.addEventListener('touchmove', this._onTouchMove.bind(this));
+            this.domElement.addEventListener('touchend', this._onTouchEnd.bind(this));
+            
+            const actionButton = document.getElementById('action-button');
+            if(actionButton) {
+                actionButton.addEventListener('click', () => this._handleInteraction());
+            }
+        } else {
+            this.domElement.addEventListener('click', () => this.controls.lock());
+            document.addEventListener('keydown', this._onKeyDown.bind(this));
+            document.addEventListener('keyup', this._onKeyUp.bind(this));
+        }
+    }
+
+    _onKeyDown(event) {
+        switch (event.code) {
+            case 'KeyW': this.moveForward = true; break;
+            case 'KeyA': this.moveLeft = true; break;
+            case 'KeyS': this.moveBackward = true; break;
+            case 'KeyD': this.moveRight = true; break;
+            case 'KeyE': this._handleInteraction(); break;
+        }
+    }
+
+    _onKeyUp(event) {
+        switch (event.code) {
+            case 'KeyW': this.moveForward = false; break;
+            case 'KeyA': this.moveLeft = false; break;
+            case 'KeyS': this.moveBackward = false; break;
+            case 'KeyD': this.moveRight = false; break;
+        }
+    }
+
+    _onTouchStart(event) {
+        for (const touch of event.changedTouches) {
+            const x = touch.clientX;
+            const y = touch.clientY;
+            const rect = this.joystick.container.getBoundingClientRect();
+            const distSq = (x - (rect.left + rect.width / 2)) ** 2 + (y - (rect.top + rect.height / 2)) ** 2;
+            if (distSq < (rect.width / 2) ** 2 && !this.joystick.active) {
+                this.joystick.active = true;
+                this.joystick.touchId = touch.identifier;
+                this.joystick.center.set(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                this.joystick.current.set(x, y);
+            } else if (!this.look.active) {
+                this.look.active = true;
+                this.look.touchId = touch.identifier;
+                this.look.start.set(x, y);
+                this.look.current.set(x, y);
+            }
+        }
+    }
+
+    _onTouchMove(event) {
+        event.preventDefault();
+        for (const touch of event.changedTouches) {
+            const x = touch.clientX;
+            const y = touch.clientY;
+            if (touch.identifier === this.joystick.touchId) {
+                this.joystick.current.set(x, y);
+                const delta = this.joystick.current.clone().sub(this.joystick.center);
+                if (delta.length() > this.joystick.container.clientWidth / 2) {
+                    delta.normalize().multiplyScalar(this.joystick.container.clientWidth / 2);
+                }
+                this.joystick.thumb.style.transform = `translate(${delta.x}px, ${delta.y}px)`;
+            } else if (touch.identifier === this.look.touchId) {
+                this.look.current.set(x, y);
+                const deltaX = this.look.current.x - this.look.start.x;
+                const deltaY = this.look.current.y - this.look.start.y;
+                this.euler.setFromQuaternion(this.camera.quaternion);
+                this.euler.y -= deltaX * 0.002;
+                this.euler.x -= deltaY * 0.002;
+                this.euler.x = Math.max(Math.PI / 2 - this.maxPolarAngle, Math.min(Math.PI / 2 - this.minPolarAngle, this.euler.x));
+                this.camera.quaternion.setFromEuler(this.euler);
+                this.look.start.copy(this.look.current);
+            }
+        }
+    }
+
+    _onTouchEnd(event) {
+        for (const touch of event.changedTouches) {
+            if (touch.identifier === this.joystick.touchId) {
+                this.joystick.active = false;
+                this.joystick.touchId = null;
+                this.joystick.thumb.style.transform = `translate(0px, 0px)`;
+                this.direction.set(0,0,0);
+            } else if (touch.identifier === this.look.touchId) {
+                this.look.active = false;
+                this.look.touchId = null;
+            }
+        }
+    }
 }

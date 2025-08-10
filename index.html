@@ -1,13 +1,49 @@
-<!doctype html>
-<html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Recorrido Virtual 3D PWA</title>
-  </head>
-  <body>
+    <link rel="stylesheet" href="/style.css">
+    <link rel="manifest" href="/manifest.json">
+</head>
+<body>
+    <!-- Canvas de Three.js -->
     <canvas id="webglCanvas"></canvas>
+
+    <!-- UI Superpuesta -->
+    <div id="ui-container">
+        <div class="crosshair">+</div>
+        <div id="interaction-text" class="hidden">Presiona [E] para interactuar</div>
+    </div>
+    
+    <!-- Pantalla de Inicio y Controles para Móvil -->
+    <div id="mobile-ui-container">
+        <div id="start-screen">
+            <h1>Recorrido Virtual</h1>
+            <p>Toca la pantalla para comenzar</p>
+            <small>Para una mejor experiencia, por favor, usa tu dispositivo en modo horizontal.</small>
+        </div>
+        <div id="mobile-controls" class="hidden">
+            <div id="joystick-container"><div id="joystick-thumb"></div></div>
+            <div id="action-button-container"><button id="action-button">E</button></div>
+        </div>
+    </div>
+
+    <!-- --- Modal de Interacción Reactivado --- -->
+    <div id="modal-container" class="hidden">
+        <div id="modal-content">
+            <h2 id="modal-title">Título del Objeto</h2>
+            <p id="modal-text">Aquí va la descripción detallada del objeto.</p>
+            <button id="modal-close-button">Cerrar</button>
+        </div>
+    </div>
+
+<div id="dev-info">
+  <span>POS: </span>
+  <span id="coords-display">X: 0, Y: 0, Z: 0</span>
+</div>
+
     <script type="module" src="/src/main.js"></script>
-  </body>
+</body>
 </html>
