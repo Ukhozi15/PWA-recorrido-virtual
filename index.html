@@ -11,18 +11,20 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
-
-    <!-- Estilos para la Pantalla de Bienvenida con la paleta del Logo -->
-    <style>
-        
-    </style>
 </head>
 <body>
 
-    <!-- Pantalla de Bienvenida (con la paleta y logo) -->
+    <!-- Overlay de Orientación -->
+    <div id="orientation-overlay" class="hidden">
+        <div class="orientation-content">
+            <img src="/icons/rotate-icon.svg" alt="Girar dispositivo" class="orientation-icon">
+            <p>Para una mejor experiencia, por favor gira tu dispositivo a modo horizontal.</p>
+        </div>
+    </div>
+
+    <!-- Pantalla de Bienvenida -->
     <div id="welcome-overlay">
         <div class="welcome-content">
-            <!-- Logo añadido aquí -->
             <img src="/icons/icon-512x512.png" alt="Logo de la Escuela" class="welcome-logo">
             <h1>¡Hola, Explorador!</h1>
             <p>Prepárate para una aventura increíble por nuestra escuela.</p>
@@ -30,19 +32,27 @@
         </div>
     </div>
 
-    <!-- El resto de tu HTML se mantiene igual -->
+    <!-- Contenido Principal -->
     <div id="loading-overlay" class="hidden">
         <div class="loading-text">Cargando...</div>
     </div>
     <canvas id="webglCanvas"></canvas>
+
+    <div id="exit-button-container">
+        <button id="exit-button">Salir</button>
+    </div>
+
+    <div id="interaction-text" class="hidden">Presiona [E] para interactuar</div>
+
     <div id="ui-container">
         <div class="crosshair">+</div>
-        <div id="interaction-text" class="hidden">Presiona [E] para interactuar</div>
     </div>
+
     <div id="mobile-controls" class="hidden">
         <div id="joystick-container"><div id="joystick-thumb"></div></div>
         <div id="action-button-container"><button id="action-button">E</button></div>
     </div>
+
     <div id="modal-container" class="hidden">
         <div id="modal-content">
             <h2 id="modal-title">Título del Objeto</h2>
@@ -50,6 +60,20 @@
             <button id="modal-close-button">Cerrar</button>
         </div>
     </div>
+
+    <!-- Overlay para la encuesta -->
+    <div id="survey-overlay" class="hidden">
+        <div id="survey-content">
+            <h2>¡Tu opinión es importante!</h2>
+            <p>Por favor, ayúdanos a mejorar completando esta breve encuesta antes de salir.</p>
+            <div class="survey-iframe-container">
+                <!-- ✨ CAMBIO: URL de la encuesta actualizada al formato correcto -->
+                <iframe src="https://forms.gle/NstdGJSNAj7wxLxn6" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
+            </div>
+            <p class="survey-thanks">¡Gracias por jugar!</p>
+        </div>
+    </div>
+
     <div id="dev-info">
       <span>POS: </span>
       <span id="coords-display">X: 0, Y: 0, Z: 0</span>

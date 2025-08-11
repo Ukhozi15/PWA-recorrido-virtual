@@ -1,5 +1,7 @@
 // src/ui/UIManager.js
 
+import { registerInteraction } from '../core/api.js';
+
 let modalContainer, modalTitle, modalText, modalCloseButton;
 let pointerLockControls; // Renombrado para mayor claridad
 

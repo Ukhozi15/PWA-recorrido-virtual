@@ -3,6 +3,7 @@
   --brand-purple: #8a2be2;
   --brand-orange: #ffa500;
   --brand-pink: #ff69b4;
+  --brand-red: #dc3545;
 
   --dark-background: #2c2c3e;
   --light-background: #ffffff;
@@ -34,13 +35,7 @@ body {
   height: 100%;
 }
 
-canvas {
-  display: block;
-}
-
-.hidden {
-  display: none !important;
-}
+.hidden { display: none !important; }
 
 /* --- Estilos para la Pantalla de Carga (CON SPINNER) --- */
 @keyframes spin {
@@ -72,7 +67,90 @@ canvas {
   animation: spin 1s linear infinite;
 }
 
-/* --- ESTILOS PARA LA UI DE DESKTOP --- */
+/* --- Estilos para el botón de salir --- */
+#exit-button-container {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  z-index: 20;
+}
+
+#exit-button {
+  background-color: rgba(220, 53, 69, 0.8);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  transition: background-color 0.2s, transform 0.2s;
+}
+
+#exit-button:hover {
+  background-color: var(--brand-red);
+  transform: scale(1.05);
+}
+
+/* --- Estilos para el overlay de la encuesta --- */
+#survey-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 250;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#survey-content {
+  background-color: var(--light-background);
+  color: var(--text-primary);
+  padding: 30px;
+  border-radius: 15px;
+  max-width: 800px;
+  width: 100%;
+  height: 90%;
+  text-align: center;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+}
+
+#survey-content h2 {
+  margin-top: 0;
+  color: var(--brand-purple);
+}
+
+.survey-iframe-container {
+  flex-grow: 1;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  margin: 15px 0;
+}
+
+.survey-iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.survey-thanks {
+  margin-top: 15px;
+  margin-bottom: 0;
+  font-size: 1.1em;
+  color: var(--text-secondary);
+}
+
+/* --- ESTILOS PARA LA UI GENERAL --- */
 #ui-container {
   position: absolute;
   top: 0;
@@ -92,7 +170,6 @@ canvas {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
-/* --- ✨ CAMBIO: Estilo de texto de interacción movido y generalizado --- */
 #interaction-text {
   position: absolute;
   bottom: 10%;
@@ -116,7 +193,7 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: auto; /* El contenedor general no captura eventos */
+  pointer-events: auto;
 }
 
 #joystick-container {
@@ -167,7 +244,7 @@ canvas {
   transform: scale(1.1);
 }
 
-/* --- ✨ NUEVO: Estilos para el overlay de orientación --- */
+/* --- Estilos para el overlay de orientación --- */
 #orientation-overlay {
     position: fixed;
     top: 0;
@@ -288,19 +365,16 @@ canvas {
   }
 }
 
-/* ✨ CAMBIO: La regla ahora solo oculta el crosshair, no todo el contenedor */
 @media (pointer: coarse) {
   #ui-container .crosshair {
     display: none;
   }
-  /* ✨ CAMBIO: En móvil, el texto de interacción se posiciona más arriba para no chocar con los botones */
   #interaction-text {
       bottom: auto;
       top: 20px;
   }
 }
 
-/* ✨ NUEVO: Media query para mostrar el aviso de orientación */
 @media (pointer: coarse) and (orientation: portrait) {
     #orientation-overlay {
         display: flex;

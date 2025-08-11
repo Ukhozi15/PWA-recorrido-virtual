@@ -55,9 +55,10 @@ export class FirstPersonControls {
         this.minPolarAngle = 0;
         this.maxPolarAngle = Math.PI;
         
-        // ✨ CAMBIO: Valores ajustados para un movimiento de cámara más lento y suave
-        this.lookSpeed = 0.0015; // Reducido para menor sensibilidad
-        this.lookDamping = 0.15;   // Aumentado para una parada más suave
+        // ✨ CAMBIO: Velocidades de cámara separadas para escritorio y móvil
+        this.desktopLookSpeed = 0.0012; // Más lento para escritorio
+        this.touchLookSpeed = 0.0022;   // Un poco más rápido para móvil
+        this.lookDamping = 0.2;         // Mayor amortiguación para una parada más suave
         this.lookVelocity = new THREE.Vector2();
         this.targetEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -85,11 +86,8 @@ export class FirstPersonControls {
         if (this.controls.isLocked && !this.isTouchDevice) {
             this.euler.y -= this.lookVelocity.x;
             this.euler.x -= this.lookVelocity.y;
-
             this.euler.x = Math.max(Math.PI / 2 - this.maxPolarAngle, Math.min(Math.PI / 2 - this.minPolarAngle, this.euler.x));
-            
             this.camera.quaternion.setFromEuler(this.euler);
-
             this.lookVelocity.x *= (1 - this.lookDamping);
             this.lookVelocity.y *= (1 - this.lookDamping);
         }
@@ -230,8 +228,8 @@ export class FirstPersonControls {
         const movementX = event.movementX || 0;
         const movementY = event.movementY || 0;
         
-        this.lookVelocity.x += movementX * this.lookSpeed;
-        this.lookVelocity.y += movementY * this.lookSpeed;
+        this.lookVelocity.x += movementX * this.desktopLookSpeed;
+        this.lookVelocity.y += movementY * this.desktopLookSpeed;
     }
 
     _onKeyDown(event) {
@@ -312,8 +310,9 @@ export class FirstPersonControls {
         const deltaY = this.look.current.y - this.look.start.y;
         
         this.euler.setFromQuaternion(this.camera.quaternion);
-        this.euler.y -= deltaX * 0.002;
-        this.euler.x -= deltaY * 0.002;
+        // ✨ CAMBIO: Usa la velocidad de rotación táctil
+        this.euler.y -= deltaX * this.touchLookSpeed;
+        this.euler.x -= deltaY * this.touchLookSpeed;
         this.euler.x = Math.max(Math.PI / 2 - this.maxPolarAngle, Math.min(Math.PI / 2 - this.minPolarAngle, this.euler.x));
         this.camera.quaternion.setFromEuler(this.euler);
         

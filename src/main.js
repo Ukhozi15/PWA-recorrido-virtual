@@ -29,7 +29,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }, { once: true });
     }
 
-    // --- SERVICE WORKER REGISTRATION ---
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
@@ -78,7 +77,6 @@ async function initializeBaseScene() {
     controls = new FirstPersonControls(camera, renderer.domElement);
     scene.add(controls.getObject());
 
-    // ✨ CAMBIO: Se restaura la inicialización del UI Manager para que el modal funcione
     initUIManager(controls.controls);
 
     interactionRaycaster = new THREE.Raycaster();
@@ -86,6 +84,21 @@ async function initializeBaseScene() {
     interactionText = document.getElementById('interaction-text');
     actionButton = document.getElementById('action-button');
     
+    const modalCloseButton = document.getElementById('modal-close-button');
+    if (modalCloseButton) {
+        modalCloseButton.addEventListener('click', () => {
+            if (!isTouchDevice) {
+                controls.controls.lock();
+            }
+        });
+    }
+
+    // ✨ NUEVO: Lógica para el botón de salir
+    const exitButton = document.getElementById('exit-button');
+    if (exitButton) {
+        exitButton.addEventListener('click', handleExitGame);
+    }
+
     window.addEventListener('keydown', handleInteractionKey);
     actionButton.addEventListener('click', handleInteractionAction);
     window.addEventListener('resize', handleResize);
@@ -94,6 +107,7 @@ async function initializeBaseScene() {
 }
 
 async function loadAssetsAndFinalize() {
+    // ... (código existente sin cambios)
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
@@ -109,29 +123,26 @@ async function loadAssetsAndFinalize() {
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
+// ✨ NUEVO: Función para manejar la salida del juego
+function handleExitGame() {
+    const surveyOverlay = document.getElementById('survey-overlay');
+    if (surveyOverlay) {
+        // Desbloquea el cursor para que el usuario pueda interactuar con la encuesta
+        controls.controls.unlock();
+        surveyOverlay.classList.remove('hidden');
+    }
+}
 
 function checkInterestPoints() {
+    // ... (código existente sin cambios)
     if (!interactionRaycaster || !camera || interestPoints_scene.length === 0) return;
-
     interactionRaycaster.setFromCamera({ x: 0, y: 0 }, camera);
     const intersects = interactionRaycaster.intersectObjects(interestPoints_scene);
-
-    if (intersects.length > 0) {
-        intersectedPoint = intersects[0].object;
-    } else {
-        intersectedPoint = null;
-    }
-    
+    intersectedPoint = intersects.length > 0 ? intersects[0].object : null;
     const canInteract = !!intersectedPoint;
-    
     if (canInteract) {
-        if (isTouchDevice) {
-            interactionText.innerText = "Toca el botón para interactuar";
-        } else {
-            interactionText.innerText = "Presiona [E] para interactuar";
-        }
+        interactionText.innerText = isTouchDevice ? "Toca el botón para interactuar" : "Presiona [E] para interactuar";
     }
-    
     interactionText.classList.toggle('hidden', !canInteract);
     if (actionButton) {
         actionButton.classList.toggle('active', canInteract);
@@ -139,37 +150,37 @@ function checkInterestPoints() {
 }
 
 function handleInteractionKey(event) {
+    // ... (código existente sin cambios)
     if (event.code === 'KeyE') {
         handleInteractionAction();
     }
 }
 
 function handleInteractionAction() {
+    // ... (código existente sin cambios)
     if (intersectedPoint) {
         showModalWithData(intersectedPoint.pointData); 
     }
 }
 
 function animate() {
+    // ... (código existente sin cambios)
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
-
     if (controls) {
         controls.update(delta);
     }
-
     checkInterestPoints();
-    
     const coordsDisplay = document.getElementById('coords-display');
     if (coordsDisplay && controls) {
         const pos = controls.getObject().position;
         coordsDisplay.textContent = `X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)}`;
     }
-
     renderer.render(scene, camera);
 }
 
 function handleResize() {
+    // ... (código existente sin cambios)
     if (camera && renderer) {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
