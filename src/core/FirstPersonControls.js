@@ -35,7 +35,6 @@ export class FirstPersonControls {
         
         this.isTouchDevice = 'ontouchstart' in window;
         
-        // ✨ CAMBIO: Se apunta al elemento correcto para la cámara táctil
         this.lookSurface = document.getElementById('mobile-controls');
         
         this.joystick = {
@@ -55,6 +54,12 @@ export class FirstPersonControls {
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
         this.minPolarAngle = 0;
         this.maxPolarAngle = Math.PI;
+        
+        // ✨ CAMBIO: Valores ajustados para un movimiento de cámara más lento y suave
+        this.lookSpeed = 0.0015; // Reducido para menor sensibilidad
+        this.lookDamping = 0.15;   // Aumentado para una parada más suave
+        this.lookVelocity = new THREE.Vector2();
+        this.targetEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
         this._setupEventListeners();
     }
@@ -76,6 +81,18 @@ export class FirstPersonControls {
 
     update(delta) {
         if (!this.isLocked) return;
+        
+        if (this.controls.isLocked && !this.isTouchDevice) {
+            this.euler.y -= this.lookVelocity.x;
+            this.euler.x -= this.lookVelocity.y;
+
+            this.euler.x = Math.max(Math.PI / 2 - this.maxPolarAngle, Math.min(Math.PI / 2 - this.minPolarAngle, this.euler.x));
+            
+            this.camera.quaternion.setFromEuler(this.euler);
+
+            this.lookVelocity.x *= (1 - this.lookDamping);
+            this.lookVelocity.y *= (1 - this.lookDamping);
+        }
 
         if (this.joystick.active) {
             const joystickDelta = this.joystick.current.clone().sub(this.joystick.center);
@@ -188,38 +205,50 @@ export class FirstPersonControls {
     }
 
     _setupEventListeners() {
+        this._onMouseMove = this._onMouseMove.bind(this);
+
         if (this.isTouchDevice) {
             this.joystick.container.addEventListener('touchstart', this._onJoystickStart.bind(this));
             this.joystick.container.addEventListener('touchmove', this._onJoystickMove.bind(this));
             this.joystick.container.addEventListener('touchend', this._onJoystickEnd.bind(this));
 
-            // ✨ CAMBIO: El listener ahora está en la superficie de control correcta
             this.lookSurface.addEventListener('touchstart', this._onLookStart.bind(this));
             this.lookSurface.addEventListener('touchmove', this._onLookMove.bind(this));
             this.lookSurface.addEventListener('touchend', this._onLookEnd.bind(this));
             
         } else {
+            this.controls.addEventListener('lock', () => document.addEventListener('mousemove', this._onMouseMove, false));
+            this.controls.addEventListener('unlock', () => document.removeEventListener('mousemove', this._onMouseMove, false));
             this.domElement.addEventListener('click', () => this.controls.lock());
             document.addEventListener('keydown', this._onKeyDown.bind(this));
             document.addEventListener('keyup', this._onKeyUp.bind(this));
         }
     }
 
+    _onMouseMove(event) {
+        if (!this.controls.isLocked) return;
+        const movementX = event.movementX || 0;
+        const movementY = event.movementY || 0;
+        
+        this.lookVelocity.x += movementX * this.lookSpeed;
+        this.lookVelocity.y += movementY * this.lookSpeed;
+    }
+
     _onKeyDown(event) {
         switch (event.code) {
-            case 'KeyW': this.moveForward = true; break;
-            case 'KeyA': this.moveLeft = true; break;
-            case 'KeyS': this.moveBackward = true; break;
-            case 'KeyD': this.moveRight = true; break;
+            case 'KeyW': case 'ArrowUp': this.moveForward = true; break;
+            case 'KeyA': case 'ArrowLeft': this.moveLeft = true; break;
+            case 'KeyS': case 'ArrowDown': this.moveBackward = true; break;
+            case 'KeyD': case 'ArrowRight': this.moveRight = true; break;
         }
     }
 
     _onKeyUp(event) {
         switch (event.code) {
-            case 'KeyW': this.moveForward = false; break;
-            case 'KeyA': this.moveLeft = false; break;
-            case 'KeyS': this.moveBackward = false; break;
-            case 'KeyD': this.moveRight = false; break;
+            case 'KeyW': case 'ArrowUp': this.moveForward = false; break;
+            case 'KeyA': case 'ArrowLeft': this.moveLeft = false; break;
+            case 'KeyS': case 'ArrowDown': this.moveBackward = false; break;
+            case 'KeyD': case 'ArrowRight': this.moveRight = false; break;
         }
     }
 
@@ -243,8 +272,9 @@ export class FirstPersonControls {
         
         this.joystick.current.set(touch.clientX, touch.clientY);
         const delta = this.joystick.current.clone().sub(this.joystick.center);
-        if (delta.length() > this.joystick.container.clientWidth / 2) {
-            delta.normalize().multiplyScalar(this.joystick.container.clientWidth / 2);
+        const maxDist = this.joystick.container.clientWidth / 2;
+        if (delta.length() > maxDist) {
+            delta.normalize().multiplyScalar(maxDist);
         }
         this.joystick.thumb.style.transform = `translate(${delta.x}px, ${delta.y}px)`;
     }
@@ -261,7 +291,7 @@ export class FirstPersonControls {
     }
 
     _onLookStart(event) {
-        if (this.joystick.active) return;
+        if (event.target === this.joystick.container || event.target === this.joystick.thumb) return;
         
         this.look.active = true;
         const touch = event.changedTouches[0];

@@ -8,49 +8,40 @@ import { initUIManager, showModalWithData } from './ui/UIManager.js';
 import { pointsOfInterest } from './data/pointsData.js';
 import { InterestPoint } from './core/InterestPoint.js';
 
-// Las variables globales se mantienen igual
+// Global variables
 let scene, camera, renderer, controls, clock;
 let interactionRaycaster;
 const interestPoints_scene = [];
 let intersectedPoint = null;
 let interactionText;
 let actionButton;
+let isTouchDevice;
 
-// --- LÓGICA DE INICIO PRINCIPAL ---
-// Se ejecuta cuando el DOM está completamente cargado.
+// --- MAIN START LOGIC ---
 document.addEventListener('DOMContentLoaded', () => {
     const startButton = document.getElementById('start-button');
     const welcomeOverlay = document.getElementById('welcome-overlay');
 
     if (startButton && welcomeOverlay) {
         startButton.addEventListener('click', async () => {
-            // Ocultar la pantalla de bienvenida con una transición suave
             welcomeOverlay.classList.add('hidden');
-            
-            // Iniciar la experiencia 3D
             await startExperience();
         }, { once: true });
     }
 
-    // --- REGISTRO DEL SERVICE WORKER ---
+    // --- SERVICE WORKER REGISTRATION ---
     if ('serviceWorker' in navigator) {
       window.addEventListener('load', () => {
         navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('Service Worker registrado con éxito:', registration);
-          })
-          .catch(error => {
-            console.error('Error al registrar el Service Worker:', error);
-          });
+          .then(registration => console.log('Service Worker registered successfully:', registration))
+          .catch(error => console.error('Error registering Service Worker:', error));
       });
     }
 });
 
-// Esta nueva función centraliza el inicio de la app
 async function startExperience() {
-    const isTouchDevice = 'ontouchstart' in window;
+    isTouchDevice = 'ontouchstart' in window;
 
-    // Si es un dispositivo táctil, activa los controles móviles y pide pantalla completa.
     if (isTouchDevice) {
         const mobileControls = document.getElementById('mobile-controls');
         mobileControls.classList.remove('hidden');
@@ -58,15 +49,11 @@ async function startExperience() {
             if (document.documentElement.requestFullscreen) {
                 await document.documentElement.requestFullscreen();
             }
-            if (screen.orientation && screen.orientation.lock) {
-                await screen.orientation.lock('landscape-primary');
-            }
         } catch (err) {
-            console.warn(`Error con pantalla completa u orientación: ${err.message}`);
+            console.warn(`Error with fullscreen: ${err.message}`);
         }
     }
     
-    // Lógica de inicialización común para todos los dispositivos
     await initializeBaseScene();
     await loadAssetsAndFinalize();
 }
@@ -88,9 +75,10 @@ async function initializeBaseScene() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
 
-    controls = new FirstPersonControls(camera, canvas);
+    controls = new FirstPersonControls(camera, renderer.domElement);
     scene.add(controls.getObject());
 
+    // ✨ CAMBIO: Se restaura la inicialización del UI Manager para que el modal funcione
     initUIManager(controls.controls);
 
     interactionRaycaster = new THREE.Raycaster();
@@ -100,6 +88,7 @@ async function initializeBaseScene() {
     
     window.addEventListener('keydown', handleInteractionKey);
     actionButton.addEventListener('click', handleInteractionAction);
+    window.addEventListener('resize', handleResize);
 
     animate();
 }
@@ -134,6 +123,15 @@ function checkInterestPoints() {
     }
     
     const canInteract = !!intersectedPoint;
+    
+    if (canInteract) {
+        if (isTouchDevice) {
+            interactionText.innerText = "Toca el botón para interactuar";
+        } else {
+            interactionText.innerText = "Presiona [E] para interactuar";
+        }
+    }
+    
     interactionText.classList.toggle('hidden', !canInteract);
     if (actionButton) {
         actionButton.classList.toggle('active', canInteract);
@@ -148,7 +146,7 @@ function handleInteractionKey(event) {
 
 function handleInteractionAction() {
     if (intersectedPoint) {
-        showModalWithData(intersectedPoint.pointData);
+        showModalWithData(intersectedPoint.pointData); 
     }
 }
 
@@ -161,6 +159,13 @@ function animate() {
     }
 
     checkInterestPoints();
+    
+    const coordsDisplay = document.getElementById('coords-display');
+    if (coordsDisplay && controls) {
+        const pos = controls.getObject().position;
+        coordsDisplay.textContent = `X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)}`;
+    }
+
     renderer.render(scene, camera);
 }
 
@@ -171,5 +176,3 @@ function handleResize() {
         renderer.setSize(window.innerWidth, window.innerHeight);
     }
 }
-
-window.addEventListener('resize', handleResize);

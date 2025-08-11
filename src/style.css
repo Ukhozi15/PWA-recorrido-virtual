@@ -1,11 +1,25 @@
-/* --- ESTILOS GLOBALES Y TEMA --- */
+/* --- VARIABLES GLOBALES Y TEMA --- */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --brand-purple: #8a2be2;
+  --brand-orange: #ffa500;
+  --brand-pink: #ff69b4;
+
+  --dark-background: #2c2c3e;
+  --light-background: #ffffff;
+  --light-gray: #f4f4f9;
+
+  --text-primary: #212529;
+  --text-secondary: #5a6168;
+  --text-on-dark: rgba(255, 255, 255, 0.9);
+
+  font-family: "Poppins", system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+
+  color-scheme: light;
+  color: var(--text-primary);
+  background-color: var(--dark-background);
+
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -28,20 +42,34 @@ canvas {
   display: none !important;
 }
 
-/* --- Estilos para la Pantalla de Carga --- */
+/* --- Estilos para la Pantalla de Carga (CON SPINNER) --- */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 #loading-overlay {
   position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: #242424;
+  background-color: var(--dark-background);
   z-index: 99;
   display: flex;
   justify-content: center;
   align-items: center;
-  color: white;
-  font-size: 24px;
+}
+
+#loading-overlay::after {
+  content: "";
+  display: block;
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  border: 5px solid rgba(255, 255, 255, 0.2);
+  border-top-color: var(--brand-orange);
+  animation: spin 1s linear infinite;
 }
 
 /* --- ESTILOS PARA LA UI DE DESKTOP --- */
@@ -56,7 +84,6 @@ canvas {
   justify-content: center;
   align-items: center;
   color: white;
-  font-family: sans-serif;
   text-align: center;
 }
 
@@ -65,45 +92,31 @@ canvas {
   text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
+/* --- ✨ CAMBIO: Estilo de texto de interacción movido y generalizado --- */
 #interaction-text {
   position: absolute;
   bottom: 10%;
-  background-color: rgba(0, 0, 0, 0.5);
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: rgba(44, 44, 62, 0.8);
+  color: var(--text-on-dark);
   padding: 10px 20px;
   border-radius: 10px;
   font-size: 16px;
+  font-weight: 500;
+  border: 1px solid rgba(255, 165, 0, 0.5);
+  pointer-events: none;
+  z-index: 10;
 }
 
 /* --- ESTILOS PARA LA UI MÓVIL --- */
-#mobile-ui-container {
-  /* Este contenedor solo es para agrupar, no necesita estilos por ahora */
-}
-
-#start-screen {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.8);
-  z-index: 20;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: white;
-  text-align: center;
-  cursor: pointer;
-}
-
 #mobile-controls {
   position: absolute;
   bottom: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  /* ✨ CAMBIO: Ahora puede recibir eventos para la cámara */
-  pointer-events: auto;
+  pointer-events: auto; /* El contenedor general no captura eventos */
 }
 
 #joystick-container {
@@ -112,7 +125,8 @@ canvas {
   left: 20px;
   width: 150px;
   height: 150px;
-  background-color: rgba(255, 255, 255, 0.2);
+  background-color: rgba(44, 44, 62, 0.5);
+  border: 2px solid rgba(255, 255, 255, 0.2);
   border-radius: 50%;
   display: flex;
   justify-content: center;
@@ -123,7 +137,7 @@ canvas {
 #joystick-thumb {
   width: 60px;
   height: 60px;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgba(138, 43, 226, 0.7);
   border-radius: 50%;
   position: absolute;
 }
@@ -139,8 +153,8 @@ canvas {
   width: 80px;
   height: 80px;
   border-radius: 50%;
-  border: 2px solid rgba(255, 255, 255, 0.5);
-  background-color: rgba(255, 255, 255, 0.3);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  background-color: rgba(138, 43, 226, 0.5);
   color: white;
   font-size: 24px;
   font-weight: bold;
@@ -148,10 +162,48 @@ canvas {
 }
 
 #action-button.active {
-  background-color: #4dbbff;
-  border-color: #fff;
+  background-color: var(--brand-orange);
+  border-color: var(--light-background);
   transform: scale(1.1);
 }
+
+/* --- ✨ NUEVO: Estilos para el overlay de orientación --- */
+#orientation-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.9);
+    z-index: 200;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: white;
+    text-align: center;
+}
+
+.orientation-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+    padding: 20px;
+}
+
+.orientation-icon {
+    width: 80px;
+    height: 80px;
+    filter: invert(1);
+    animation: rotate-anim 2s ease-in-out infinite;
+}
+
+@keyframes rotate-anim {
+    0% { transform: rotate(0deg); }
+    50% { transform: rotate(-90deg); }
+    100% { transform: rotate(-90deg); }
+}
+
 
 /* --- ESTILOS PARA EL MODAL --- */
 #modal-container {
@@ -160,7 +212,8 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  background-color: rgba(0, 0, 0, 0.6);
+  background-color: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(5px);
   display: flex;
   justify-content: center;
   align-items: center;
@@ -170,36 +223,47 @@ canvas {
 }
 
 #modal-content {
-  background-color: #333;
-  color: white;
-  padding: 25px;
-  border-radius: 12px;
+  background-color: var(--light-background);
+  color: var(--text-primary);
+  padding: 30px;
+  border-radius: 15px;
   max-width: 500px;
   width: 100%;
   text-align: center;
-  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+  border: none;
 }
 
 #modal-title {
   margin-top: 0;
-  color: #4dbbff;
+  margin-bottom: 15px;
+  color: var(--brand-purple);
+  font-weight: 700;
+  font-size: 2em;
+}
+
+#modal-text {
+  color: var(--text-secondary);
+  font-size: 1.1em;
+  line-height: 1.6;
 }
 
 #modal-close-button {
-  margin-top: 20px;
-  padding: 10px 25px;
+  margin-top: 25px;
+  padding: 12px 30px;
   border: none;
-  border-radius: 8px;
-  background-color: #4dbbff;
+  border-radius: 50px;
+  background-color: rgba(224, 25, 25, 0.825);
   color: white;
-  font-size: 16px;
+  font-size: 1em;
+  font-weight: 700;
   cursor: pointer;
-  transition: background-color 0.2s;
+  transition: transform 0.2s, box-shadow 0.2s;
 }
 
 #modal-close-button:hover {
-  background-color: #009bff;
+  transform: scale(1.05);
+  box-shadow: 0 4px 15px rgba(255, 165, 0, 0.4);
 }
 
 /* --- ESTILOS PARA INFO DE DESARROLLO --- */
@@ -217,32 +281,44 @@ canvas {
   pointer-events: none;
 }
 
-/* --- MEDIA QUERIES CORREGIDAS PARA MÓVIL Y DESKTOP --- */
-
-/* Estilos para dispositivos NO táctiles (con puntero fino, como un ratón) */
+/* --- MEDIA QUERIES --- */
 @media (pointer: fine) {
-  #mobile-ui-container {
+  #mobile-controls {
     display: none;
   }
 }
 
-/* Estilos para dispositivos TÁCTILES (con puntero grueso, como un dedo) */
+/* ✨ CAMBIO: La regla ahora solo oculta el crosshair, no todo el contenedor */
 @media (pointer: coarse) {
-  #ui-container {
+  #ui-container .crosshair {
     display: none;
+  }
+  /* ✨ CAMBIO: En móvil, el texto de interacción se posiciona más arriba para no chocar con los botones */
+  #interaction-text {
+      bottom: auto;
+      top: 20px;
   }
 }
 
+/* ✨ NUEVO: Media query para mostrar el aviso de orientación */
+@media (pointer: coarse) and (orientation: portrait) {
+    #orientation-overlay {
+        display: flex;
+    }
+}
+
+@media (pointer: coarse) and (orientation: landscape) {
+    #orientation-overlay {
+        display: none;
+    }
+}
+
+
+/* --- ESTILOS PANTALLA BIENVENIDA --- */
 @keyframes gradient-animation {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
+  0% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+  100% { background-position: 0% 50%; }
 }
 
 #welcome-overlay {
@@ -251,7 +327,6 @@ canvas {
   left: 0;
   width: 100%;
   height: 100%;
-  /* Paleta de colores basada en el logo: morado y naranja */
   background: linear-gradient(-45deg, #8a2be2, #ffa500, #ff69b4, #8a2be2);
   background-size: 400% 400%;
   animation: gradient-animation 15s ease infinite;
@@ -273,7 +348,7 @@ canvas {
 
 .welcome-content {
   background-color: rgba(255, 255, 255, 0.95);
-  padding: 30px 50px; /* Padding ajustado */
+  padding: 30px 50px;
   border-radius: 20px;
   box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
   max-width: 90%;
@@ -283,7 +358,6 @@ canvas {
   align-items: center;
 }
 
-/* Estilo para el logo añadido */
 .welcome-logo {
   width: 120px;
   height: auto;
@@ -292,8 +366,8 @@ canvas {
 
 .welcome-content h1 {
   margin-top: 0;
-  margin-bottom: 15px; /* Margen ajustado */
-  font-size: 2.8em; /* Tamaño ajustado */
+  margin-bottom: 15px;
+  font-size: 2.8em;
   color: #333;
   font-weight: 700;
 }
@@ -304,9 +378,8 @@ canvas {
   margin-bottom: 40px;
 }
 
-/* Botón con el color morado del logo */
 #start-button {
-  background-color: #8a2be2; /* Morado del birrete */
+  background-color: #8a2be2;
   color: white;
   border: none;
   padding: 18px 40px;
@@ -326,13 +399,7 @@ canvas {
 }
 
 @keyframes pulse {
-  0% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.03);
-  }
-  100% {
-    transform: scale(1);
-  }
+  0% { transform: scale(1); }
+  50% { transform: scale(1.03); }
+  100% { transform: scale(1); }
 }
