@@ -76,15 +76,13 @@ export class FirstPersonControls {
     update(delta) {
         if (!this.isLocked) return;
 
-        // ✨ CAMBIO: Lógica de dirección corregida para el joystick
         if (this.joystick.active) {
             const joystickDelta = this.joystick.current.clone().sub(this.joystick.center);
             const moveSpeed = joystickDelta.length() / (this.joystick.container.clientWidth / 2);
             if (moveSpeed > 0.1) {
                 const angle = Math.atan2(joystickDelta.y, joystickDelta.x);
-                // La dirección Z (adelante/atrás) depende del seno del ángulo
-                this.direction.z = Math.sin(angle) * moveSpeed;
-                // La dirección X (izquierda/derecha) depende del coseno
+                // ✨ CAMBIO: Se invierte el eje Z para que el movimiento sea intuitivo
+                this.direction.z = -Math.sin(angle) * moveSpeed;
                 this.direction.x = Math.cos(angle) * moveSpeed;
             } else { this.direction.set(0,0,0); }
         } else {
@@ -99,23 +97,21 @@ export class FirstPersonControls {
         this.velocity.x -= this.velocity.x * this.deceleration * delta;
         this.velocity.z -= this.velocity.z * this.deceleration * delta;
 
-        // ✨ CAMBIO: Se aplica la aceleración en la dirección correcta
         if (this.direction.lengthSq() > 0) {
-             this.velocity.z += this.direction.z * this.acceleration * delta;
-             this.velocity.x += this.direction.x * this.acceleration * delta;
+             this.velocity.z -= this.direction.z * this.acceleration * delta;
+             this.velocity.x -= this.direction.x * this.acceleration * delta;
         }
         
         this._handleHorizontalCollisions();
 
-        // ✨ CAMBIO: Se aplica la velocidad final al movimiento
-        this.controls.moveRight(this.velocity.x * delta);
-        this.controls.moveForward(this.velocity.z * delta);
+        this.controls.moveRight(-this.velocity.x * delta);
+        this.controls.moveForward(-this.velocity.z * delta);
         this.controls.object.position.y += this.velocity.y * delta;
         
         this._updateHeadBob(delta);
         this.controls.object.position.y += this.headBobOffset;
     }
-
+    
     _snapToGround() {
         const playerPosition = this.controls.object.position;
         const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, 100, playerPosition.z), new THREE.Vector3(0, -1, 0));

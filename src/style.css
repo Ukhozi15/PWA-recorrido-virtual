@@ -144,7 +144,17 @@ canvas {
     color: white;
     font-size: 24px;
     font-weight: bold;
+    /* ✨ NUEVO: Transición suave para los cambios de estilo */
+    transition: background-color 0.2s, border-color 0.2s, transform 0.2s;
 }
+
+/* ✨ NUEVO: Estilo para cuando el botón de acción está activo */
+#action-button.active {
+    background-color: #4dbbff; /* Mismo azul que el modal */
+    border-color: #fff; /* Borde blanco para más contraste */
+    transform: scale(1.1); /* Un pequeño efecto de escala para llamar la atención */
+}
+
 
 /* --- ESTILOS PARA EL MODAL --- */
 #modal-container {

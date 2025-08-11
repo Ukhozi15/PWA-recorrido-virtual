@@ -13,8 +13,8 @@ let interactionRaycaster;
 const interestPoints_scene = [];
 let intersectedPoint = null;
 let interactionText;
+let actionButton; // ✨ NUEVO: Referencia al botón de acción móvil
 
-// ✨ CAMBIO: Se separa la inicialización de la carga de modelos
 async function initializeBaseScene() {
     scene = new THREE.Scene();
     clock = new THREE.Clock();
@@ -34,23 +34,20 @@ async function initializeBaseScene() {
     controls = new FirstPersonControls(camera, canvas);
     scene.add(controls.getObject());
 
-    initUIManager(controls.controls); // UIManager no necesita PointerLockControls
+    initUIManager();
 
     interactionRaycaster = new THREE.Raycaster();
     interactionRaycaster.far = 3;
     interactionText = document.getElementById('interaction-text');
+    actionButton = document.getElementById('action-button'); // ✨ NUEVO: Obtenemos el botón
     
-    // Añadir listeners de interacción
     window.addEventListener('keydown', handleInteractionKey);
-    document.getElementById('action-button').addEventListener('click', handleInteractionAction);
+    actionButton.addEventListener('click', handleInteractionAction);
 
-    // Inicia el bucle de animación básico
     animate();
 }
 
-// ✨ CAMBIO: Nueva función para cargar los assets pesados
 async function loadAssetsAndFinalize() {
-    // Muestra un indicador de carga
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
@@ -63,7 +60,6 @@ async function loadAssetsAndFinalize() {
         scene.add(point);
     });
 
-    // Oculta el indicador de carga
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
@@ -76,12 +72,15 @@ function checkInterestPoints() {
 
     if (intersects.length > 0) {
         intersectedPoint = intersects[0].object;
-        interactionText.classList.remove('hidden');
     } else {
-        if (intersectedPoint) {
-            intersectedPoint = null;
-            interactionText.classList.add('hidden');
-        }
+        intersectedPoint = null;
+    }
+    
+    // ✨ CAMBIO: Se actualiza la visibilidad de ambos elementos de interacción
+    const canInteract = !!intersectedPoint;
+    interactionText.classList.toggle('hidden', !canInteract);
+    if (actionButton) {
+        actionButton.classList.toggle('active', canInteract);
     }
 }
 
@@ -137,14 +136,12 @@ function main() {
                 console.warn(`Error con pantalla completa u orientación: ${err.message}`);
             }
 
-            // ✨ CAMBIO: Se llama a las funciones de inicialización en orden
             await initializeBaseScene();
             await loadAssetsAndFinalize();
 
         }, { once: true });
 
     } else {
-        // La lógica de escritorio ahora también se beneficia de la carga separada
         async function startDesktop() {
             await initializeBaseScene();
             await loadAssetsAndFinalize();
