@@ -8,12 +8,69 @@ import { initUIManager, showModalWithData } from './ui/UIManager.js';
 import { pointsOfInterest } from './data/pointsData.js';
 import { InterestPoint } from './core/InterestPoint.js';
 
+// Las variables globales se mantienen igual
 let scene, camera, renderer, controls, clock;
 let interactionRaycaster;
 const interestPoints_scene = [];
 let intersectedPoint = null;
 let interactionText;
-let actionButton; // Referencia al botón de acción móvil
+let actionButton;
+
+// --- LÓGICA DE INICIO PRINCIPAL ---
+// Se ejecuta cuando el DOM está completamente cargado.
+document.addEventListener('DOMContentLoaded', () => {
+    const startButton = document.getElementById('start-button');
+    const welcomeOverlay = document.getElementById('welcome-overlay');
+
+    if (startButton && welcomeOverlay) {
+        startButton.addEventListener('click', async () => {
+            // Ocultar la pantalla de bienvenida con una transición suave
+            welcomeOverlay.classList.add('hidden');
+            
+            // Iniciar la experiencia 3D
+            await startExperience();
+        }, { once: true });
+    }
+
+    // --- REGISTRO DEL SERVICE WORKER ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registrado con éxito:', registration);
+          })
+          .catch(error => {
+            console.error('Error al registrar el Service Worker:', error);
+          });
+      });
+    }
+});
+
+// Esta nueva función centraliza el inicio de la app
+async function startExperience() {
+    const isTouchDevice = 'ontouchstart' in window;
+
+    // Si es un dispositivo táctil, activa los controles móviles y pide pantalla completa.
+    if (isTouchDevice) {
+        const mobileControls = document.getElementById('mobile-controls');
+        mobileControls.classList.remove('hidden');
+        try {
+            if (document.documentElement.requestFullscreen) {
+                await document.documentElement.requestFullscreen();
+            }
+            if (screen.orientation && screen.orientation.lock) {
+                await screen.orientation.lock('landscape-primary');
+            }
+        } catch (err) {
+            console.warn(`Error con pantalla completa u orientación: ${err.message}`);
+        }
+    }
+    
+    // Lógica de inicialización común para todos los dispositivos
+    await initializeBaseScene();
+    await loadAssetsAndFinalize();
+}
+
 
 async function initializeBaseScene() {
     scene = new THREE.Scene();
@@ -34,7 +91,6 @@ async function initializeBaseScene() {
     controls = new FirstPersonControls(camera, canvas);
     scene.add(controls.getObject());
 
-    // Le pasamos los controles de PointerLock al UIManager
     initUIManager(controls.controls);
 
     interactionRaycaster = new THREE.Raycaster();
@@ -117,51 +173,3 @@ function handleResize() {
 }
 
 window.addEventListener('resize', handleResize);
-
-function main() {
-    const isTouchDevice = 'ontouchstart' in window;
-
-    if (isTouchDevice) {
-        const startScreen = document.getElementById('start-screen');
-        const mobileControls = document.getElementById('mobile-controls');
-
-        startScreen.addEventListener('click', async () => {
-            startScreen.classList.add('hidden');
-            mobileControls.classList.remove('hidden');
-
-            try {
-                await document.documentElement.requestFullscreen();
-                await screen.orientation.lock('landscape-primary');
-            } catch (err) {
-                console.warn(`Error con pantalla completa u orientación: ${err.message}`);
-            }
-
-            await initializeBaseScene();
-            await loadAssetsAndFinalize();
-
-        }, { once: true });
-
-    } else {
-        async function startDesktop() {
-            await initializeBaseScene();
-            await loadAssetsAndFinalize();
-        }
-        startDesktop();
-    }
-
-    // --- REGISTRO DEL SERVICE WORKER ---
-    if ('serviceWorker' in navigator) {
-      window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-          .then(registration => {
-            console.log('Service Worker registrado con éxito:', registration);
-          })
-          .catch(error => {
-            console.error('Error al registrar el Service Worker:', error);
-          });
-      });
-    }
-}
-
-// Llama a la función principal para que todo comience.
-main();

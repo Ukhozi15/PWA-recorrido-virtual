@@ -7,36 +7,132 @@
     <link rel="stylesheet" href="/style.css">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icons/icon-192x192.png">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Estilos para la Pantalla de Bienvenida con la paleta del Logo -->
+    <style>
+        @keyframes gradient-animation {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        #welcome-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            /* Paleta de colores basada en el logo: morado y naranja */
+            background: linear-gradient(-45deg, #8A2BE2, #FFA500, #FF69B4, #8A2BE2);
+            background-size: 400% 400%;
+            animation: gradient-animation 15s ease infinite;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            z-index: 100;
+            transition: opacity 0.8s ease-in-out, visibility 0.8s;
+            visibility: visible;
+            opacity: 1;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        #welcome-overlay.hidden {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .welcome-content {
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 30px 50px; /* Padding ajustado */
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+            max-width: 90%;
+            width: 550px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Estilo para el logo añadido */
+        .welcome-logo {
+            width: 120px;
+            height: auto;
+            margin-bottom: 15px;
+        }
+
+        .welcome-content h1 {
+            margin-top: 0;
+            margin-bottom: 15px; /* Margen ajustado */
+            font-size: 2.8em; /* Tamaño ajustado */
+            color: #333;
+            font-weight: 700;
+        }
+
+        .welcome-content p {
+            font-size: 1.25em;
+            color: #555;
+            margin-bottom: 40px;
+        }
+
+        /* Botón con el color morado del logo */
+        #start-button {
+            background-color: #8A2BE2; /* Morado del birrete */
+            color: white;
+            border: none;
+            padding: 18px 40px;
+            font-size: 1.3em;
+            border-radius: 50px;
+            cursor: pointer;
+            font-weight: 700;
+            box-shadow: 0 4px 20px rgba(138, 43, 226, 0.5);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: pulse 2s infinite;
+        }
+
+        #start-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 6px 25px rgba(138, 43, 226, 0.7);
+            animation: none;
+        }
+        
+        @keyframes pulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.03); }
+            100% { transform: scale(1); }
+        }
+    </style>
 </head>
 <body>
 
-    <!-- Pantalla de Carga -->
-<div id="loading-overlay" class="hidden">
-    <div class="loading-text">Cargando...</div>
-</div>
-    <!-- Canvas de Three.js -->
-    <canvas id="webglCanvas"></canvas>
+    <!-- Pantalla de Bienvenida (con la paleta y logo) -->
+    <div id="welcome-overlay">
+        <div class="welcome-content">
+            <!-- Logo añadido aquí -->
+            <img src="/icons/icon-512x512.png" alt="Logo de la Escuela" class="welcome-logo">
+            <h1>¡Hola, Explorador!</h1>
+            <p>Prepárate para una aventura increíble por nuestra escuela.</p>
+            <button id="start-button">¡Comenzar!</button>
+        </div>
+    </div>
 
-    <!-- UI Superpuesta -->
+    <!-- El resto de tu HTML se mantiene igual -->
+    <div id="loading-overlay" class="hidden">
+        <div class="loading-text">Cargando...</div>
+    </div>
+    <canvas id="webglCanvas"></canvas>
     <div id="ui-container">
         <div class="crosshair">+</div>
         <div id="interaction-text" class="hidden">Presiona [E] para interactuar</div>
     </div>
-    
-    <!-- Pantalla de Inicio y Controles para Móvil -->
-    <div id="mobile-ui-container">
-        <div id="start-screen">
-            <h1>Recorrido Virtual</h1>
-            <p>Toca la pantalla para comenzar</p>
-            <small>Para una mejor experiencia, por favor, usa tu dispositivo en modo horizontal.</small>
-        </div>
-        <div id="mobile-controls" class="hidden">
-            <div id="joystick-container"><div id="joystick-thumb"></div></div>
-            <div id="action-button-container"><button id="action-button">E</button></div>
-        </div>
+    <div id="mobile-controls" class="hidden">
+        <div id="joystick-container"><div id="joystick-thumb"></div></div>
+        <div id="action-button-container"><button id="action-button">E</button></div>
     </div>
-
-    <!-- --- Modal de Interacción Reactivado --- -->
     <div id="modal-container" class="hidden">
         <div id="modal-content">
             <h2 id="modal-title">Título del Objeto</h2>
@@ -44,11 +140,10 @@
             <button id="modal-close-button">Cerrar</button>
         </div>
     </div>
-
-<div id="dev-info">
-  <span>POS: </span>
-  <span id="coords-display">X: 0, Y: 0, Z: 0</span>
-</div>
+    <div id="dev-info">
+      <span>POS: </span>
+      <span id="coords-display">X: 0, Y: 0, Z: 0</span>
+    </div>
 
     <script type="module" src="/src/main.js"></script>
 </body>
