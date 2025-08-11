@@ -2,8 +2,6 @@
 
 import * as THREE from 'three';
 import { PointerLockControls } from "three/examples/jsm/controls/PointerLockControls.js";
-// ✨ CAMBIO: La interacción ahora se maneja en main.js, quitamos la importación de showModal
-// import { showModal } from '../ui/UIManager.js';
 
 export class FirstPersonControls {
     constructor(camera, domElement) {
@@ -37,7 +35,6 @@ export class FirstPersonControls {
         
         this.isTouchDevice = 'ontouchstart' in window;
         
-        // ✨ CAMBIO: Se obtiene el contenedor de la UI móvil para los eventos de la cámara
         this.mobileUiContainer = document.getElementById('mobile-ui-container');
         
         this.joystick = {
@@ -73,21 +70,22 @@ export class FirstPersonControls {
     }
     
     get isLocked() {
-        // En móvil, la experiencia siempre está "bloqueada" después de la pantalla de inicio.
         return this.controls.isLocked || this.isTouchDevice;
     }
 
     update(delta) {
         if (!this.isLocked) return;
 
-        // La lógica de movimiento basada en el joystick se mantiene igual
+        // ✨ CAMBIO: Lógica de dirección corregida para el joystick
         if (this.joystick.active) {
             const joystickDelta = this.joystick.current.clone().sub(this.joystick.center);
             const moveSpeed = joystickDelta.length() / (this.joystick.container.clientWidth / 2);
             if (moveSpeed > 0.1) {
                 const angle = Math.atan2(joystickDelta.y, joystickDelta.x);
-                this.direction.z = Math.sin(angle) * moveSpeed; // Invertido para que sea más intuitivo
-                this.direction.x = Math.cos(angle) * moveSpeed; // Invertido para que sea más intuitivo
+                // La dirección Z (adelante/atrás) depende del seno del ángulo
+                this.direction.z = Math.sin(angle) * moveSpeed;
+                // La dirección X (izquierda/derecha) depende del coseno
+                this.direction.x = Math.cos(angle) * moveSpeed;
             } else { this.direction.set(0,0,0); }
         } else {
             this.direction.z = Number(this.moveForward) - Number(this.moveBackward);
@@ -101,6 +99,7 @@ export class FirstPersonControls {
         this.velocity.x -= this.velocity.x * this.deceleration * delta;
         this.velocity.z -= this.velocity.z * this.deceleration * delta;
 
+        // ✨ CAMBIO: Se aplica la aceleración en la dirección correcta
         if (this.direction.lengthSq() > 0) {
              this.velocity.z += this.direction.z * this.acceleration * delta;
              this.velocity.x += this.direction.x * this.acceleration * delta;
@@ -108,6 +107,7 @@ export class FirstPersonControls {
         
         this._handleHorizontalCollisions();
 
+        // ✨ CAMBIO: Se aplica la velocidad final al movimiento
         this.controls.moveRight(this.velocity.x * delta);
         this.controls.moveForward(this.velocity.z * delta);
         this.controls.object.position.y += this.velocity.y * delta;
@@ -191,21 +191,17 @@ export class FirstPersonControls {
         }
     }
 
-    // --- ✨ MÉTODO MODIFICADO: Lógica de eventos reescrita para móvil ---
     _setupEventListeners() {
         if (this.isTouchDevice) {
-            // El joystick tiene sus propios listeners
             this.joystick.container.addEventListener('touchstart', this._onJoystickStart.bind(this));
             this.joystick.container.addEventListener('touchmove', this._onJoystickMove.bind(this));
             this.joystick.container.addEventListener('touchend', this._onJoystickEnd.bind(this));
 
-            // El resto de la pantalla sirve para mover la cámara
             this.mobileUiContainer.addEventListener('touchstart', this._onLookStart.bind(this));
             this.mobileUiContainer.addEventListener('touchmove', this._onLookMove.bind(this));
             this.mobileUiContainer.addEventListener('touchend', this._onLookEnd.bind(this));
             
         } else {
-            // La lógica de escritorio se mantiene igual
             this.domElement.addEventListener('click', () => this.controls.lock());
             document.addEventListener('keydown', this._onKeyDown.bind(this));
             document.addEventListener('keyup', this._onKeyUp.bind(this));
@@ -230,9 +226,8 @@ export class FirstPersonControls {
         }
     }
 
-    // --- ✨ NUEVAS FUNCIONES PARA MANEJAR EL JOYSTICK ---
     _onJoystickStart(event) {
-        event.stopPropagation(); // Evita que el toque se propague al control de la cámara
+        event.stopPropagation();
         this.joystick.active = true;
         const touch = event.changedTouches[0];
         this.joystick.touchId = touch.identifier;
@@ -268,9 +263,7 @@ export class FirstPersonControls {
         this.direction.set(0, 0, 0);
     }
 
-    // --- ✨ NUEVAS FUNCIONES PARA MANEJAR LA CÁMARA TÁCTIL ---
     _onLookStart(event) {
-        // Ignora el toque si ya hay un dedo en el joystick
         if (this.joystick.active) return;
         
         this.look.active = true;
