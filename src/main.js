@@ -13,7 +13,7 @@ let interactionRaycaster;
 const interestPoints_scene = [];
 let intersectedPoint = null;
 let interactionText;
-let actionButton; // ✨ NUEVO: Referencia al botón de acción móvil
+let actionButton; // Referencia al botón de acción móvil
 
 async function initializeBaseScene() {
     scene = new THREE.Scene();
@@ -34,12 +34,13 @@ async function initializeBaseScene() {
     controls = new FirstPersonControls(camera, canvas);
     scene.add(controls.getObject());
 
-    initUIManager();
+    // Le pasamos los controles de PointerLock al UIManager
+    initUIManager(controls.controls);
 
     interactionRaycaster = new THREE.Raycaster();
     interactionRaycaster.far = 3;
     interactionText = document.getElementById('interaction-text');
-    actionButton = document.getElementById('action-button'); // ✨ NUEVO: Obtenemos el botón
+    actionButton = document.getElementById('action-button');
     
     window.addEventListener('keydown', handleInteractionKey);
     actionButton.addEventListener('click', handleInteractionAction);
@@ -76,7 +77,6 @@ function checkInterestPoints() {
         intersectedPoint = null;
     }
     
-    // ✨ CAMBIO: Se actualiza la visibilidad de ambos elementos de interacción
     const canInteract = !!intersectedPoint;
     interactionText.classList.toggle('hidden', !canInteract);
     if (actionButton) {
@@ -148,6 +148,20 @@ function main() {
         }
         startDesktop();
     }
+
+    // --- REGISTRO DEL SERVICE WORKER ---
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then(registration => {
+            console.log('Service Worker registrado con éxito:', registration);
+          })
+          .catch(error => {
+            console.error('Error al registrar el Service Worker:', error);
+          });
+      });
+    }
 }
 
+// Llama a la función principal para que todo comience.
 main();
