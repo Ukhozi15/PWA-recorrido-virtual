@@ -35,7 +35,8 @@ export class FirstPersonControls {
         
         this.isTouchDevice = 'ontouchstart' in window;
         
-        this.mobileUiContainer = document.getElementById('mobile-ui-container');
+        // ✨ CAMBIO: Se apunta al elemento correcto para la cámara táctil
+        this.lookSurface = document.getElementById('mobile-controls');
         
         this.joystick = {
             active: false,
@@ -81,7 +82,6 @@ export class FirstPersonControls {
             const moveSpeed = joystickDelta.length() / (this.joystick.container.clientWidth / 2);
             if (moveSpeed > 0.1) {
                 const angle = Math.atan2(joystickDelta.y, joystickDelta.x);
-                // ✨ CAMBIO: Se invierte el eje Z para que el movimiento sea intuitivo
                 this.direction.z = -Math.sin(angle) * moveSpeed;
                 this.direction.x = Math.cos(angle) * moveSpeed;
             } else { this.direction.set(0,0,0); }
@@ -193,9 +193,10 @@ export class FirstPersonControls {
             this.joystick.container.addEventListener('touchmove', this._onJoystickMove.bind(this));
             this.joystick.container.addEventListener('touchend', this._onJoystickEnd.bind(this));
 
-            this.mobileUiContainer.addEventListener('touchstart', this._onLookStart.bind(this));
-            this.mobileUiContainer.addEventListener('touchmove', this._onLookMove.bind(this));
-            this.mobileUiContainer.addEventListener('touchend', this._onLookEnd.bind(this));
+            // ✨ CAMBIO: El listener ahora está en la superficie de control correcta
+            this.lookSurface.addEventListener('touchstart', this._onLookStart.bind(this));
+            this.lookSurface.addEventListener('touchmove', this._onLookMove.bind(this));
+            this.lookSurface.addEventListener('touchend', this._onLookEnd.bind(this));
             
         } else {
             this.domElement.addEventListener('click', () => this.controls.lock());
