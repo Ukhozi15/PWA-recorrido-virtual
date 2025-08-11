@@ -4,23 +4,18 @@ import * as THREE from 'three';
 import './style.css';
 import { FirstPersonControls } from './core/FirstPersonControls.js';
 import { initSchoolScene } from './scenes/SchoolScene.js'; 
-// --- MODIFICACIÓN: Importar los nuevos módulos que creamos ---
 import { initUIManager, showModalWithData } from './ui/UIManager.js';
 import { pointsOfInterest } from './data/pointsData.js';
 import { InterestPoint } from './core/InterestPoint.js';
 
 let scene, camera, renderer, controls, clock;
-
-// --- MODIFICACIÓN: Añadir variables para el nuevo sistema de interacción ---
 let interactionRaycaster;
-const interestPoints_scene = []; // Array para guardar los objetos de la escena
-let intersectedPoint = null;    // Para guardar el punto que estamos mirando
-let interactionText;            // Referencia al elemento del DOM "Presiona [E]..."
+const interestPoints_scene = [];
+let intersectedPoint = null;
+let interactionText;
 
-/**
- * Contiene toda la lógica para configurar y empezar la experiencia 3D.
- */
-async function startExperience() {
+// ✨ CAMBIO: Se separa la inicialización de la carga de modelos
+async function initializeBaseScene() {
     scene = new THREE.Scene();
     clock = new THREE.Clock();
 
@@ -36,106 +31,84 @@ async function startExperience() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
 
-    const collisionObjects = await initSchoolScene(scene, renderer);
-
-    controls = new FirstPersonControls(camera, canvas); 
-    controls.setCollisionObjects(collisionObjects);
+    controls = new FirstPersonControls(camera, canvas);
     scene.add(controls.getObject());
 
-    initUIManager(controls.controls);
+    initUIManager(controls.controls); // UIManager no necesita PointerLockControls
 
-    // --- MODIFICACIÓN: Inicializar el Raycaster y los puntos de interés ---
     interactionRaycaster = new THREE.Raycaster();
-    // Umbral de 3 unidades. El rayo no detectará objetos más lejanos. ¡Puedes ajustar este valor!
-    interactionRaycaster.far = 3; 
-
-    // Obtener la referencia al texto de interacción del HTML
+    interactionRaycaster.far = 3;
     interactionText = document.getElementById('interaction-text');
+    
+    // Añadir listeners de interacción
+    window.addEventListener('keydown', handleInteractionKey);
+    document.getElementById('action-button').addEventListener('click', handleInteractionAction);
 
-    // Crear y añadir los puntos de interés a la escena
+    // Inicia el bucle de animación básico
+    animate();
+}
+
+// ✨ CAMBIO: Nueva función para cargar los assets pesados
+async function loadAssetsAndFinalize() {
+    // Muestra un indicador de carga
+    const loadingOverlay = document.getElementById('loading-overlay');
+    if (loadingOverlay) loadingOverlay.classList.remove('hidden');
+
+    const collisionObjects = await initSchoolScene(scene, renderer);
+    controls.setCollisionObjects(collisionObjects);
+
     pointsOfInterest.forEach(pointData => {
         const point = new InterestPoint(pointData);
         interestPoints_scene.push(point);
         scene.add(point);
     });
-    
-    // Añadir el listener para la tecla 'E' y para el botón de acción en móvil
-    window.addEventListener('keydown', handleInteractionKey);
-    document.getElementById('action-button').addEventListener('click', handleInteractionAction);
 
-    // Inicia el bucle de animación
-    animate();
+    // Oculta el indicador de carga
+    if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
-/**
- * ✨ NUEVA FUNCIÓN ✨
- * Comprueba si estamos mirando un punto de interés.
- */
+
 function checkInterestPoints() {
-    // No hacer nada si los elementos necesarios no están listos
     if (!interactionRaycaster || !camera || interestPoints_scene.length === 0) return;
 
-    // Lanza un rayo desde el centro de la cámara hacia adelante
     interactionRaycaster.setFromCamera({ x: 0, y: 0 }, camera);
     const intersects = interactionRaycaster.intersectObjects(interestPoints_scene);
 
     if (intersects.length > 0) {
-        // Hemos encontrado un punto de interés al alcance
         intersectedPoint = intersects[0].object;
         interactionText.classList.remove('hidden');
     } else {
-        // No estamos mirando ningún punto
-        if (intersectedPoint) { // Solo si había uno antes
+        if (intersectedPoint) {
             intersectedPoint = null;
             interactionText.classList.add('hidden');
         }
     }
 }
 
-/**
- * ✨ NUEVA FUNCIÓN ✨
- * Se llama cuando se presiona la tecla de interacción ('E').
- */
 function handleInteractionKey(event) {
     if (event.code === 'KeyE') {
         handleInteractionAction();
     }
 }
 
-/**
- * ✨ NUEVA FUNCIÓN ✨
- * Lógica central de la interacción, llamada tanto por teclado como por botón móvil.
- */
 function handleInteractionAction() {
-    console.log("Intentando interactuar con:", intersectedPoint);
     if (intersectedPoint) {
         showModalWithData(intersectedPoint.pointData);
     }
 }
 
-/**
- * El bucle de renderizado que se ejecuta en cada fotograma.
- */
 function animate() {
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
 
     if (controls) {
         controls.update(delta);
-        const pos = controls.getObject().position;
-        document.getElementById('coords-display').textContent = 
-            `X: ${pos.x.toFixed(1)}, Y: ${pos.y.toFixed(1)}, Z: ${pos.z.toFixed(1)}`;
     }
 
-    // --- MODIFICACIÓN: Llamar a nuestra nueva función en cada fotograma ---
     checkInterestPoints();
-
     renderer.render(scene, camera);
 }
 
-/**
- * Maneja el redimensionamiento de la ventana.
- */
 function handleResize() {
     if (camera && renderer) {
         camera.aspect = window.innerWidth / window.innerHeight;
@@ -146,10 +119,6 @@ function handleResize() {
 
 window.addEventListener('resize', handleResize);
 
-/**
- * --- Punto de Entrada Principal ---
- * Decide si mostrar la pantalla de inicio (móvil) o empezar directamente (desktop).
- */
 function main() {
     const isTouchDevice = 'ontouchstart' in window;
 
@@ -157,26 +126,31 @@ function main() {
         const startScreen = document.getElementById('start-screen');
         const mobileControls = document.getElementById('mobile-controls');
 
-        startScreen.addEventListener('click', () => {
+        startScreen.addEventListener('click', async () => {
             startScreen.classList.add('hidden');
             mobileControls.classList.remove('hidden');
 
-            document.documentElement.requestFullscreen().catch(err => {
-                console.warn(`Error al intentar activar pantalla completa: ${err.message}`);
-            });
+            try {
+                await document.documentElement.requestFullscreen();
+                await screen.orientation.lock('landscape-primary');
+            } catch (err) {
+                console.warn(`Error con pantalla completa u orientación: ${err.message}`);
+            }
 
-            screen.orientation.lock('landscape-primary').catch(err => {
-                console.warn(`Error al intentar bloquear la orientación: ${err.message}`);
-            });
-
-            startExperience();
+            // ✨ CAMBIO: Se llama a las funciones de inicialización en orden
+            await initializeBaseScene();
+            await loadAssetsAndFinalize();
 
         }, { once: true });
 
     } else {
-        startExperience();
+        // La lógica de escritorio ahora también se beneficia de la carga separada
+        async function startDesktop() {
+            await initializeBaseScene();
+            await loadAssetsAndFinalize();
+        }
+        startDesktop();
     }
 }
 
-// Llama a la función principal para que todo comience.
 main();
