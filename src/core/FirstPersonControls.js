@@ -9,6 +9,9 @@ export class FirstPersonControls {
         this.domElement = domElement;
         this.controls = new PointerLockControls(camera, domElement);
 
+        // ✨ MEJORA MANTENIDA: Bandera para asegurar que la física no empiece antes de tiempo.
+        this.isReady = false;
+
         this.playerHeight = 1.7;
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
@@ -28,9 +31,11 @@ export class FirstPersonControls {
         this.moveRight = false;
         this.isGrounded = false;
 
+        // ✨ LÓGICA RESTAURADA: Volvemos al sistema de head-bob que era estable.
         this.headBobFrequency = 8;
         this.headBobAmplitude = 0.05;
         this.headBobTimer = 0;
+        this.headBobOffset = 0;
         
         this.isTouchDevice = 'ontouchstart' in window;
         
@@ -67,6 +72,7 @@ export class FirstPersonControls {
         this.collisionObjects = objects;
         if (this.collisionObjects.length > 0) {
             this._snapToGround();
+            this.isReady = true;
         }
     }
 
@@ -79,7 +85,7 @@ export class FirstPersonControls {
     }
 
     update(delta) {
-        if (!this.isLocked) return;
+        if (!this.isReady || !this.isLocked) return;
         
         if (this.controls.isLocked && !this.isTouchDevice) {
             this.euler.y -= this.lookVelocity.x;
@@ -104,7 +110,9 @@ export class FirstPersonControls {
         }
         this.direction.normalize();
 
-        // --- LÓGICA DE FÍSICA ---
+        // ✨ LÓGICA RESTAURADA: Se resta el offset del head-bob antes de la física.
+        this.controls.object.position.y -= this.headBobOffset;
+        
         this._updateGravity(delta);
 
         this.velocity.x -= this.velocity.x * this.deceleration * delta;
@@ -121,8 +129,9 @@ export class FirstPersonControls {
         this.controls.moveForward(-this.velocity.z * delta);
         this.controls.object.position.y += this.velocity.y * delta;
         
-        // --- LÓGICA VISUAL (SEPARADA DE LA FÍSICA) ---
         this._updateHeadBob(delta);
+        // ✨ LÓGICA RESTAURADA: Se vuelve a sumar el offset después de la física.
+        this.controls.object.position.y += this.headBobOffset;
     }
     
     _snapToGround() {
@@ -130,27 +139,24 @@ export class FirstPersonControls {
         const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, 100, playerPosition.z), new THREE.Vector3(0, -1, 0));
         const intersections = snapRaycaster.intersectObjects(this.collisionObjects, true);
         if (intersections.length > 0) {
-            playerPosition.y = intersections[0].point.y + this.playerHeight;
+            const groundY = intersections[0].point.y;
+            playerPosition.y = groundY + this.playerHeight;
         }
     }
     
+    // ✨ LÓGICA RESTAURADA: Volvemos a la función de gravedad simple y estable.
     _updateGravity(delta) {
+        this.isGrounded = false;
         const playerPosition = this.controls.object.position;
         this.downRaycaster.set(playerPosition, new THREE.Vector3(0, -1, 0));
         const intersections = this.downRaycaster.intersectObjects(this.collisionObjects, true);
-        
-        const onObject = intersections.length > 0;
-        
-        if (onObject && intersections[0].distance <= this.playerHeight + 0.2) {
+
+        if (intersections.length > 0 && intersections[0].distance <= this.playerHeight) {
+            playerPosition.y = intersections[0].point.y + this.playerHeight;
+            this.velocity.y = 0;
             this.isGrounded = true;
-            if (this.velocity.y < 0) {
-                this.velocity.y = 0;
-            }
-            playerPosition.y = THREE.MathUtils.lerp(playerPosition.y, intersections[0].point.y + this.playerHeight, delta * 15);
-        } else {
-            this.isGrounded = false;
         }
-    
+        
         if (!this.isGrounded) {
             this.velocity.y -= this.gravity * delta;
         }
@@ -197,13 +203,14 @@ export class FirstPersonControls {
         return intersections.length > 0 ? intersections[0].point.y : -Infinity;
     }
     
+    // ✨ LÓGICA RESTAURADA: El head-bob vuelve a calcular el offset.
     _updateHeadBob(delta) {
         if (this.isGrounded && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
             this.headBobTimer += delta * this.headBobFrequency;
-            this.camera.position.y = Math.sin(this.headBobTimer) * this.headBobAmplitude;
+            this.headBobOffset = Math.sin(this.headBobTimer) * this.headBobAmplitude;
         } else {
             this.headBobTimer = 0;
-            this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, 0, delta * 10);
+            this.headBobOffset = 0;
         }
     }
 

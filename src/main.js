@@ -86,7 +86,7 @@ function initializeBaseScene() {
     
     // ✨ CAMBIO: Se establece una posición inicial razonable.
     // La función _snapToGround se encargará del ajuste final.
-    controls.getObject().position.set(-9.7, 5, 14.3);
+    controls.getObject().position.set(-9.7, 1.7, 14.3);
 
     initUIManager(controls.controls);
 
