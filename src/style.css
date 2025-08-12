@@ -70,8 +70,9 @@ body {
 /* --- Estilos para el botón de salir --- */
 #exit-button-container {
   position: absolute;
-  top: 20px;
-  right: 20px;
+  /* ✨ CAMBIO: Añadido padding para respetar el área segura del notch */
+  top: calc(20px + env(safe-area-inset-top));
+  right: calc(20px + env(safe-area-inset-right));
   z-index: 20;
 }
 
@@ -106,7 +107,8 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 250;
-  padding: 20px;
+  /* ✨ CAMBIO: Padding para respetar todas las áreas seguras */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   box-sizing: border-box;
 }
 
@@ -198,8 +200,9 @@ body {
 
 #joystick-container {
   position: absolute;
-  bottom: 20px;
-  left: 20px;
+  /* ✨ CAMBIO: Padding para respetar el área segura inferior e izquierda */
+  bottom: calc(20px + env(safe-area-inset-bottom));
+  left: calc(20px + env(safe-area-inset-left));
   width: 150px;
   height: 150px;
   background-color: rgba(44, 44, 62, 0.5);
@@ -221,8 +224,9 @@ body {
 
 #action-button-container {
   position: absolute;
-  bottom: 30px;
-  right: 30px;
+  /* ✨ CAMBIO: Padding para respetar el área segura inferior y derecha */
+  bottom: calc(30px + env(safe-area-inset-bottom));
+  right: calc(30px + env(safe-area-inset-right));
   pointer-events: auto;
 }
 
@@ -295,7 +299,8 @@ body {
   justify-content: center;
   align-items: center;
   z-index: 50;
-  padding: 20px;
+  /* ✨ CAMBIO: Padding para respetar todas las áreas seguras */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
   box-sizing: border-box;
 }
 
@@ -370,8 +375,9 @@ body {
     display: none;
   }
   #interaction-text {
+      /* ✨ CAMBIO: Ajustado para respetar el área segura superior */
       bottom: auto;
-      top: 20px;
+      top: calc(20px + env(safe-area-inset-top));
   }
 }
 
@@ -413,6 +419,9 @@ body {
   visibility: visible;
   opacity: 1;
   font-family: "Poppins", sans-serif;
+  /* ✨ CAMBIO: Padding para respetar todas las áreas seguras */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  box-sizing: border-box;
 }
 
 #welcome-overlay.hidden {

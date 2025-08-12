@@ -2,7 +2,8 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <!-- ✨ CAMBIO: Añadido 'viewport-fit=cover' para manejar las áreas seguras en iOS -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Recorrido Virtual 3D PWA</title>
     <link rel="stylesheet" href="/style.css">
     <link rel="manifest" href="/manifest.json">
@@ -67,17 +68,11 @@
             <h2>¡Tu opinión es importante!</h2>
             <p>Por favor, ayúdanos a mejorar completando esta breve encuesta antes de salir.</p>
             <div class="survey-iframe-container">
-                <!-- ✨ CAMBIO: URL de la encuesta actualizada al formato correcto -->
                 <iframe src="https://forms.gle/NstdGJSNAj7wxLxn6" frameborder="0" marginheight="0" marginwidth="0">Cargando…</iframe>
             </div>
             <p class="survey-thanks">¡Gracias por jugar!</p>
         </div>
     </div>
-
-<!--     <div id="dev-info">
-      <span>POS: </span>
-      <span id="coords-display">X: 0, Y: 0, Z: 0</span>
-    </div> -->
 
     <script type="module" src="/src/main.js"></script>
 </body>

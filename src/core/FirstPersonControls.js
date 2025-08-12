@@ -55,10 +55,9 @@ export class FirstPersonControls {
         this.minPolarAngle = 0;
         this.maxPolarAngle = Math.PI;
         
-        // ✨ CAMBIO: Velocidades de cámara separadas para escritorio y móvil
-        this.desktopLookSpeed = 0.0012; // Más lento para escritorio
-        this.touchLookSpeed = 0.0022;   // Un poco más rápido para móvil
-        this.lookDamping = 0.2;         // Mayor amortiguación para una parada más suave
+        this.desktopLookSpeed = 0.0012;
+        this.touchLookSpeed = 0.0022;
+        this.lookDamping = 0.2;
         this.lookVelocity = new THREE.Vector2();
         this.targetEuler = new THREE.Euler(0, 0, 0, 'YXZ');
 
@@ -206,12 +205,12 @@ export class FirstPersonControls {
         this._onMouseMove = this._onMouseMove.bind(this);
 
         if (this.isTouchDevice) {
-            this.joystick.container.addEventListener('touchstart', this._onJoystickStart.bind(this));
-            this.joystick.container.addEventListener('touchmove', this._onJoystickMove.bind(this));
+            this.joystick.container.addEventListener('touchstart', this._onJoystickStart.bind(this), { passive: false });
+            this.joystick.container.addEventListener('touchmove', this._onJoystickMove.bind(this), { passive: false });
             this.joystick.container.addEventListener('touchend', this._onJoystickEnd.bind(this));
 
-            this.lookSurface.addEventListener('touchstart', this._onLookStart.bind(this));
-            this.lookSurface.addEventListener('touchmove', this._onLookMove.bind(this));
+            this.lookSurface.addEventListener('touchstart', this._onLookStart.bind(this), { passive: false });
+            this.lookSurface.addEventListener('touchmove', this._onLookMove.bind(this), { passive: false });
             this.lookSurface.addEventListener('touchend', this._onLookEnd.bind(this));
             
         } else {
@@ -251,6 +250,7 @@ export class FirstPersonControls {
     }
 
     _onJoystickStart(event) {
+        // ✨ CAMBIO: Detener la propagación para que no active el control de la cámara.
         event.stopPropagation();
         this.joystick.active = true;
         const touch = event.changedTouches[0];
@@ -261,6 +261,7 @@ export class FirstPersonControls {
     }
 
     _onJoystickMove(event) {
+        // ✨ CAMBIO: Prevenir el comportamiento por defecto (scroll) y detener propagación.
         event.preventDefault();
         event.stopPropagation();
         if (!this.joystick.active) return;
@@ -289,7 +290,11 @@ export class FirstPersonControls {
     }
 
     _onLookStart(event) {
-        if (event.target === this.joystick.container || event.target === this.joystick.thumb) return;
+        // ✨ CAMBIO: Una comprobación más robusta para ignorar toques en los botones.
+        const targetElement = event.target;
+        if (targetElement.closest('#joystick-container') || targetElement.closest('#action-button-container')) {
+            return;
+        }
         
         this.look.active = true;
         const touch = event.changedTouches[0];
@@ -310,7 +315,6 @@ export class FirstPersonControls {
         const deltaY = this.look.current.y - this.look.start.y;
         
         this.euler.setFromQuaternion(this.camera.quaternion);
-        // ✨ CAMBIO: Usa la velocidad de rotación táctil
         this.euler.y -= deltaX * this.touchLookSpeed;
         this.euler.x -= deltaY * this.touchLookSpeed;
         this.euler.x = Math.max(Math.PI / 2 - this.maxPolarAngle, Math.min(Math.PI / 2 - this.minPolarAngle, this.euler.x));
