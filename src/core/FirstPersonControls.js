@@ -10,6 +10,8 @@ export class FirstPersonControls {
         this.controls = new PointerLockControls(camera, domElement);
 
         this.playerHeight = 1.7;
+        // ✨ CAMBIO: Añadimos un pequeño margen para evitar el jittering por errores de precisión.
+        this.groundCheckOffset = 0.1; 
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.gravity = 30.0;
@@ -31,7 +33,6 @@ export class FirstPersonControls {
         this.headBobFrequency = 8;
         this.headBobAmplitude = 0.05;
         this.headBobTimer = 0;
-        this.headBobOffset = 0;
         
         this.isTouchDevice = 'ontouchstart' in window;
         
@@ -105,7 +106,7 @@ export class FirstPersonControls {
         }
         this.direction.normalize();
 
-        this.controls.object.position.y -= this.headBobOffset;
+        // --- LÓGICA DE FÍSICA ---
         this._updateGravity(delta);
 
         this.velocity.x -= this.velocity.x * this.deceleration * delta;
@@ -122,8 +123,8 @@ export class FirstPersonControls {
         this.controls.moveForward(-this.velocity.z * delta);
         this.controls.object.position.y += this.velocity.y * delta;
         
+        // --- LÓGICA VISUAL (SEPARADA DE LA FÍSICA) ---
         this._updateHeadBob(delta);
-        this.controls.object.position.y += this.headBobOffset;
     }
     
     _snapToGround() {
@@ -140,8 +141,13 @@ export class FirstPersonControls {
         const playerPosition = this.controls.object.position;
         this.downRaycaster.set(playerPosition, new THREE.Vector3(0, -1, 0));
         const intersections = this.downRaycaster.intersectObjects(this.collisionObjects, true);
-        if (intersections.length > 0 && intersections[0].distance <= this.playerHeight) {
-            playerPosition.y = intersections[0].point.y + this.playerHeight;
+        
+        // ✨ CAMBIO: Usamos el offset para la comprobación del suelo
+        if (intersections.length > 0 && intersections[0].distance <= this.playerHeight + this.groundCheckOffset) {
+            // Si estamos en el suelo o muy cerca, nos ajustamos a la altura correcta
+            if (intersections[0].distance < this.playerHeight - 0.01) {
+                playerPosition.y = intersections[0].point.y + this.playerHeight;
+            }
             this.velocity.y = 0;
             this.isGrounded = true;
         }
@@ -192,12 +198,15 @@ export class FirstPersonControls {
     }
     
     _updateHeadBob(delta) {
+        // ✨ CAMBIO: El head-bob ahora solo modifica la cámara, no el objeto del jugador.
+        // Esto lo convierte en un efecto 100% visual y lo desacopla de la física.
         if (this.isGrounded && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
             this.headBobTimer += delta * this.headBobFrequency;
-            this.headBobOffset = Math.sin(this.headBobTimer) * this.headBobAmplitude;
+            this.camera.position.y = Math.sin(this.headBobTimer) * this.headBobAmplitude;
         } else {
             this.headBobTimer = 0;
-            this.headBobOffset = 0;
+            // Suaviza el retorno a la posición original
+            this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, 0, delta * 10);
         }
     }
 
@@ -250,7 +259,6 @@ export class FirstPersonControls {
     }
 
     _onJoystickStart(event) {
-        // ✨ CAMBIO: Detener la propagación para que no active el control de la cámara.
         event.stopPropagation();
         this.joystick.active = true;
         const touch = event.changedTouches[0];
@@ -261,7 +269,6 @@ export class FirstPersonControls {
     }
 
     _onJoystickMove(event) {
-        // ✨ CAMBIO: Prevenir el comportamiento por defecto (scroll) y detener propagación.
         event.preventDefault();
         event.stopPropagation();
         if (!this.joystick.active) return;
@@ -290,7 +297,6 @@ export class FirstPersonControls {
     }
 
     _onLookStart(event) {
-        // ✨ CAMBIO: Una comprobación más robusta para ignorar toques en los botones.
         const targetElement = event.target;
         if (targetElement.closest('#joystick-container') || targetElement.closest('#action-button-container')) {
             return;
