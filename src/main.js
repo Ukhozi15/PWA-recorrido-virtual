@@ -53,17 +53,18 @@ async function startExperience() {
         }
     }
     
-    await initializeBaseScene();
+    initializeBaseScene();
     await loadAssetsAndFinalize();
 
-    // ✨ CAMBIO: Activa los controles automáticamente al iniciar (solo en escritorio)
+    animate();
+
     if (!isTouchDevice && controls) {
         controls.controls.lock();
     }
 }
 
 
-async function initializeBaseScene() {
+function initializeBaseScene() {
     scene = new THREE.Scene();
     clock = new THREE.Clock();
 
@@ -100,14 +101,14 @@ async function initializeBaseScene() {
 
     const exitButton = document.getElementById('exit-button');
     if (exitButton) {
-        exitButton.addEventListener('click', handleExitGame);
+        // ✨ CAMBIO: Usar 'touchend' en móviles para que el botón del formulario funcione siempre.
+        const eventType = isTouchDevice ? 'touchend' : 'click';
+        exitButton.addEventListener(eventType, handleExitGame);
     }
 
     window.addEventListener('keydown', handleInteractionKey);
     actionButton.addEventListener('click', handleInteractionAction);
     window.addEventListener('resize', handleResize);
-
-    animate();
 }
 
 async function loadAssetsAndFinalize() {
@@ -126,7 +127,9 @@ async function loadAssetsAndFinalize() {
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
-function handleExitGame() {
+function handleExitGame(event) { // ✨ CAMBIO: Aceptar el objeto de evento
+    if (event) event.preventDefault(); // Prevenir comportamientos no deseados en móvil
+
     const surveyOverlay = document.getElementById('survey-overlay');
     if (surveyOverlay) {
         controls.controls.unlock();
