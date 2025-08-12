@@ -104,7 +104,6 @@ function initializeBaseScene() {
 
     const exitButton = document.getElementById('exit-button');
     if (exitButton) {
-        // ✨ CAMBIO: Usar 'touchend' en móviles para mayor fiabilidad.
         const eventType = isTouchDevice ? 'touchend' : 'click';
         exitButton.addEventListener(eventType, handleExitGame);
     }
@@ -130,18 +129,22 @@ async function loadAssetsAndFinalize() {
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
+/**
+ * Maneja la acción de salir del juego.
+ * En escritorio, muestra el overlay de la encuesta.
+ * En móviles, abre el formulario en una nueva pestaña sin salir de la pantalla completa.
+ */
 function handleExitGame(event) {
-    if (event) event.preventDefault(); // Previene comportamientos no deseados en móviles
+    if (event) event.preventDefault();
 
     const surveyURL = "https://forms.gle/NstdGJSNAj7wxLxn6";
 
-    // ✨ CAMBIO: Lógica condicional para abrir en nueva pestaña en móviles.
     if (isTouchDevice) {
-        // Para móviles, desbloquea los controles y abre el formulario en una nueva pestaña.
-        controls.controls.unlock();
+        // ✨ CORRECCIÓN: En móviles, solo se abre la nueva ventana.
+        // Esto evita que Safari bloquee el pop-up al salir de la pantalla completa.
         window.open(surveyURL, '_blank');
     } else {
-        // Para escritorio, mantiene el comportamiento del overlay.
+        // En escritorio, se muestra el overlay de la encuesta.
         const surveyOverlay = document.getElementById('survey-overlay');
         if (surveyOverlay) {
             controls.controls.unlock();
