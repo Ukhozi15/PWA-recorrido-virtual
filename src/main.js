@@ -69,8 +69,18 @@ function initializeBaseScene() {
     clock = new THREE.Clock();
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    // ✨ CAMBIO: La cámara ahora es un hijo del objeto de control.
-    // Esto es crucial para que el head-bob funcione correctamente sin afectar la posición física.
+    
+    // ✨ CORRECCIÓN: El renderer debe inicializarse ANTES de pasarlo a los controles.
+    const canvas = document.getElementById('webglCanvas');
+    renderer = new THREE.WebGLRenderer({
+        canvas: canvas,
+        antialias: true
+    });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.shadowMap.enabled = true;
+
+    // Ahora `renderer.domElement` es válido y se puede pasar a los controles.
     controls = new FirstPersonControls(camera, renderer.domElement);
     controls.getObject().add(camera); 
     
@@ -109,7 +119,6 @@ async function loadAssetsAndFinalize() {
 
     const collisionObjects = await initSchoolScene(scene, renderer);
     controls.setCollisionObjects(collisionObjects);
-    // ✨ CAMBIO: Ajustamos la posición inicial del jugador aquí, después de cargar la escena.
     controls.getObject().position.set(-9.7, 1.7, 14.3);
 
     pointsOfInterest.forEach(pointData => {
@@ -126,13 +135,10 @@ function handleExitGame(event) {
 
     const surveyURL = "https://forms.gle/NstdGJSNAj7wxLxn6";
 
-    // ✨ CAMBIO: Lógica para abrir en nueva pestaña en móviles.
     if (isTouchDevice) {
-        // Desbloqueamos los controles y abrimos el formulario en una nueva pestaña.
         controls.controls.unlock();
         window.open(surveyURL, '_blank');
     } else {
-        // Para escritorio, mantenemos el comportamiento del overlay.
         const surveyOverlay = document.getElementById('survey-overlay');
         if (surveyOverlay) {
             controls.controls.unlock();
