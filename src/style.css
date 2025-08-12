@@ -371,9 +371,9 @@ body {
 }
 
 @media (pointer: coarse) {
-  #ui-container .crosshair {
+/*   #ui-container .crosshair {
     display: none;
-  }
+  } */
   #interaction-text {
       /* ✨ CAMBIO: Ajustado para respetar el área segura superior */
       bottom: auto;
