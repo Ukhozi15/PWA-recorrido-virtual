@@ -55,6 +55,11 @@ async function startExperience() {
     
     await initializeBaseScene();
     await loadAssetsAndFinalize();
+
+    // ✨ CAMBIO: Activa los controles automáticamente al iniciar (solo en escritorio)
+    if (!isTouchDevice && controls) {
+        controls.controls.lock();
+    }
 }
 
 
@@ -63,7 +68,7 @@ async function initializeBaseScene() {
     clock = new THREE.Clock();
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-    camera.position.set(8.5, 1.7, 10.1);
+    camera.position.set(-9.7, 1.7, 14.3);
 
     const canvas = document.getElementById('webglCanvas');
     renderer = new THREE.WebGLRenderer({
@@ -93,7 +98,6 @@ async function initializeBaseScene() {
         });
     }
 
-    // ✨ NUEVO: Lógica para el botón de salir
     const exitButton = document.getElementById('exit-button');
     if (exitButton) {
         exitButton.addEventListener('click', handleExitGame);
@@ -107,7 +111,6 @@ async function initializeBaseScene() {
 }
 
 async function loadAssetsAndFinalize() {
-    // ... (código existente sin cambios)
     const loadingOverlay = document.getElementById('loading-overlay');
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
@@ -123,18 +126,15 @@ async function loadAssetsAndFinalize() {
     if (loadingOverlay) loadingOverlay.classList.add('hidden');
 }
 
-// ✨ NUEVO: Función para manejar la salida del juego
 function handleExitGame() {
     const surveyOverlay = document.getElementById('survey-overlay');
     if (surveyOverlay) {
-        // Desbloquea el cursor para que el usuario pueda interactuar con la encuesta
         controls.controls.unlock();
         surveyOverlay.classList.remove('hidden');
     }
 }
 
 function checkInterestPoints() {
-    // ... (código existente sin cambios)
     if (!interactionRaycaster || !camera || interestPoints_scene.length === 0) return;
     interactionRaycaster.setFromCamera({ x: 0, y: 0 }, camera);
     const intersects = interactionRaycaster.intersectObjects(interestPoints_scene);
@@ -150,21 +150,18 @@ function checkInterestPoints() {
 }
 
 function handleInteractionKey(event) {
-    // ... (código existente sin cambios)
     if (event.code === 'KeyE') {
         handleInteractionAction();
     }
 }
 
 function handleInteractionAction() {
-    // ... (código existente sin cambios)
     if (intersectedPoint) {
         showModalWithData(intersectedPoint.pointData); 
     }
 }
 
 function animate() {
-    // ... (código existente sin cambios)
     requestAnimationFrame(animate);
     const delta = clock.getDelta();
     if (controls) {
@@ -180,7 +177,6 @@ function animate() {
 }
 
 function handleResize() {
-    // ... (código existente sin cambios)
     if (camera && renderer) {
         camera.aspect = window.innerWidth / window.innerHeight;
         camera.updateProjectionMatrix();
