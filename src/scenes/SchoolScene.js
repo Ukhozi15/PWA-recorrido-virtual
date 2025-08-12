@@ -43,28 +43,46 @@ function setupLightingAndEnvironment(renderer) {
 
 async function loadSceneModels() {
     const loader = new GLTFLoader();
-    const modelPath = "/models/cafeteria.glb"; // Ruta del modelo GLB
+    const modelPath = "/models/school_mvp.glb"; // Ruta del modelo GLB
 
     try {
         console.log(`Intentando cargar el modelo desde: ${modelPath}`);
         const gltf = await loader.loadAsync(modelPath);
 
-        gltf.scene.traverse((child) => {
+        const model = gltf.scene;
+
+        // --- ✨ AQUÍ PUEDES AJUSTAR TU MODELO ✨ ---
+
+        // 1. AJUSTAR LA ESCALA
+        // El valor (x, y, z) multiplica el tamaño original.
+        // Prueba con diferentes números hasta que se vea bien.
+        model.scale.set(100, 105, 100); // Ejemplo: hacerlo 15 veces más grande
+
+        // 2. AJUSTAR LA POSICIÓN
+        // Cambia las coordenadas (x, y, z) para mover el modelo.
+        // El objetivo es que el punto de inicio del jugador quede donde tú quieras.
+        model.position.set(0, 1.6, 5.0); // Ejemplo: bajarlo 2 unidades en el eje Y
+
+        // 3. AJUSTAR LA ROTACIÓN (Opcional)
+        // Si el modelo mira en la dirección incorrecta.
+        // El valor es en radianes (Math.PI es media vuelta).
+        // model.rotation.y = Math.PI; // Ejemplo: girarlo 180 grados
+
+        // -------------------------------------------
+
+        model.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
                 
-                // --- NOTA IMPORTANTE PARA EL MODELADOR ---
                 // Para que un objeto sea interactivo, su nombre en Blender debe
-                // empezar con "interactive_". Por ejemplo: "interactive_puerta"
-                // o "interactive_poster_ciencias".
-                // El sistema de FirstPersonControls buscará este prefijo.
+                // empezar con "interactive_".
                 
                 collisionObjects.push(child);
             }
         });
 
-        scene.add(gltf.scene);
+        scene.add(model);
         console.log("Modelo cargado para visualización y colisión.");
 
     } catch (error) {

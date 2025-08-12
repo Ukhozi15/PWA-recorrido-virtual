@@ -1,45 +1,41 @@
 // src/ui/UIManager.js
 
+// 1. Importamos la función para registrar la interacción
 import { registerInteraction } from '../core/api.js';
 
-let modalContainer, modalTitle, modalText, modalCloseButton;
-let pointerLockControls; // Renombrado para mayor claridad
+let pointerLockControls;
 
-// Ahora recibe los PointerLockControls directamente
-export function initUIManager(controls) { 
-    modalContainer = document.getElementById('modal-container');
-    modalTitle = document.getElementById('modal-title');
-    modalText = document.getElementById('modal-text');
-    modalCloseButton = document.getElementById('modal-close-button');
+const modalContainer = document.getElementById('modal-container');
+const modalTitle = document.getElementById('modal-title');
+const modalText = document.getElementById('modal-text');
+const modalCloseButton = document.getElementById('modal-close-button');
 
-    pointerLockControls = controls; // Se guarda la referencia correcta
-
-    if (modalCloseButton) {
-        modalCloseButton.addEventListener('click', hideModal);
-    } else {
-        console.error("UIManager: No se encontró el botón para cerrar el modal.");
-    }
-
-    document.addEventListener('keydown', (event) => {
-        if (modalContainer && !modalContainer.classList.contains('hidden') && event.code === 'Escape') {
-            hideModal();
-        }
-    });
+export function initUIManager(controls) {
+    pointerLockControls = controls;
+    modalCloseButton.addEventListener('click', hideModal);
 }
 
-export function showModalWithData(data) {
-    if (!data || !modalContainer) {
+export function showModalWithData(pointData) {
+    if (!pointData || !modalContainer) {
         console.warn(`showModalWithData: No se recibieron datos o la UI no está inicializada.`);
         return;
     }
 
-    modalTitle.textContent = data.title;
-    modalText.textContent = data.description;
+    modalTitle.textContent = pointData.title;
+    modalText.textContent = pointData.description;
     modalContainer.classList.remove('hidden');
     
-    // Se usa la referencia correcta para desbloquear los controles del ratón
+    // Desbloquea el cursor para que el usuario pueda interactuar con el modal
     if (pointerLockControls && pointerLockControls.isLocked) {
         pointerLockControls.unlock();
+    }
+
+    // ✨ ¡ESTA ES LA PARTE QUE FALTABA! ✨
+    // Registra la interacción cuando se muestra el modal
+    if (pointerLockControls) {
+        const playerPosition = pointerLockControls.getObject().position;
+        // Llama a la función que se comunica con el backend
+        registerInteraction(pointData.id, playerPosition);
     }
 }
 
