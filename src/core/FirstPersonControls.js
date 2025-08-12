@@ -9,7 +9,6 @@ export class FirstPersonControls {
         this.domElement = domElement;
         this.controls = new PointerLockControls(camera, domElement);
 
-        // ✨ MEJORA MANTENIDA: Bandera para asegurar que la física no empiece antes de tiempo.
         this.isReady = false;
 
         this.playerHeight = 1.7;
@@ -31,11 +30,10 @@ export class FirstPersonControls {
         this.moveRight = false;
         this.isGrounded = false;
 
-        // ✨ LÓGICA RESTAURADA: Volvemos al sistema de head-bob que era estable.
-        this.headBobFrequency = 8;
-        this.headBobAmplitude = 0.05;
-        this.headBobTimer = 0;
-        this.headBobOffset = 0;
+        // --- ✨ CAMBIO: Lógica de Head-Bob completamente eliminada para estabilizar la física ---
+        // this.headBobFrequency = 8;
+        // this.headBobAmplitude = 0.05;
+        // this.headBobTimer = 0;
         
         this.isTouchDevice = 'ontouchstart' in window;
         
@@ -110,9 +108,7 @@ export class FirstPersonControls {
         }
         this.direction.normalize();
 
-        // ✨ LÓGICA RESTAURADA: Se resta el offset del head-bob antes de la física.
-        this.controls.object.position.y -= this.headBobOffset;
-        
+        // --- LÓGICA DE FÍSICA ---
         this._updateGravity(delta);
 
         this.velocity.x -= this.velocity.x * this.deceleration * delta;
@@ -129,9 +125,8 @@ export class FirstPersonControls {
         this.controls.moveForward(-this.velocity.z * delta);
         this.controls.object.position.y += this.velocity.y * delta;
         
-        this._updateHeadBob(delta);
-        // ✨ LÓGICA RESTAURADA: Se vuelve a sumar el offset después de la física.
-        this.controls.object.position.y += this.headBobOffset;
+        // --- ✨ CAMBIO: Lógica de Head-Bob completamente eliminada ---
+        // this._updateHeadBob(delta);
     }
     
     _snapToGround() {
@@ -144,7 +139,6 @@ export class FirstPersonControls {
         }
     }
     
-    // ✨ LÓGICA RESTAURADA: Volvemos a la función de gravedad simple y estable.
     _updateGravity(delta) {
         this.isGrounded = false;
         const playerPosition = this.controls.object.position;
@@ -203,16 +197,16 @@ export class FirstPersonControls {
         return intersections.length > 0 ? intersections[0].point.y : -Infinity;
     }
     
-    // ✨ LÓGICA RESTAURADA: El head-bob vuelve a calcular el offset.
-    _updateHeadBob(delta) {
-        if (this.isGrounded && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
-            this.headBobTimer += delta * this.headBobFrequency;
-            this.headBobOffset = Math.sin(this.headBobTimer) * this.headBobAmplitude;
-        } else {
-            this.headBobTimer = 0;
-            this.headBobOffset = 0;
-        }
-    }
+    // --- ✨ CAMBIO: Lógica de Head-Bob completamente eliminada ---
+    // _updateHeadBob(delta) {
+    //     if (this.isGrounded && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
+    //         this.headBobTimer += delta * this.headBobFrequency;
+    //         this.camera.position.y = Math.sin(this.headBobTimer) * this.headBobAmplitude;
+    //     } else {
+    //         this.headBobTimer = 0;
+    //         this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, 0, delta * 10);
+    //     }
+    // }
 
     _setupEventListeners() {
         this._onMouseMove = this._onMouseMove.bind(this);

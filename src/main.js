@@ -84,8 +84,6 @@ function initializeBaseScene() {
     
     scene.add(controls.getObject());
     
-    // ✨ CAMBIO: Se establece una posición inicial razonable.
-    // La función _snapToGround se encargará del ajuste final.
     controls.getObject().position.set(-9.7, 1.7, 14.3);
 
     initUIManager(controls.controls);
@@ -106,6 +104,7 @@ function initializeBaseScene() {
 
     const exitButton = document.getElementById('exit-button');
     if (exitButton) {
+        // ✨ CAMBIO: Usar 'touchend' en móviles para mayor fiabilidad.
         const eventType = isTouchDevice ? 'touchend' : 'click';
         exitButton.addEventListener(eventType, handleExitGame);
     }
@@ -132,14 +131,17 @@ async function loadAssetsAndFinalize() {
 }
 
 function handleExitGame(event) {
-    if (event) event.preventDefault();
+    if (event) event.preventDefault(); // Previene comportamientos no deseados en móviles
 
     const surveyURL = "https://forms.gle/NstdGJSNAj7wxLxn6";
 
+    // ✨ CAMBIO: Lógica condicional para abrir en nueva pestaña en móviles.
     if (isTouchDevice) {
+        // Para móviles, desbloquea los controles y abre el formulario en una nueva pestaña.
         controls.controls.unlock();
         window.open(surveyURL, '_blank');
     } else {
+        // Para escritorio, mantiene el comportamiento del overlay.
         const surveyOverlay = document.getElementById('survey-overlay');
         if (surveyOverlay) {
             controls.controls.unlock();
