@@ -10,8 +10,6 @@ export class FirstPersonControls {
         this.controls = new PointerLockControls(camera, domElement);
 
         this.playerHeight = 1.7;
-        // ✨ CAMBIO: Añadimos un pequeño margen para evitar el jittering por errores de precisión.
-        this.groundCheckOffset = 0.1; 
         this.velocity = new THREE.Vector3();
         this.direction = new THREE.Vector3();
         this.gravity = 30.0;
@@ -129,7 +127,7 @@ export class FirstPersonControls {
     
     _snapToGround() {
         const playerPosition = this.controls.object.position;
-        const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, 100, playerPosition.z), new THREE.Vector3(0, -1, 0));
+        const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z), new THREE.Vector3(0, -1, 0));
         const intersections = snapRaycaster.intersectObjects(this.collisionObjects, true);
         if (intersections.length > 0) {
             playerPosition.y = intersections[0].point.y + this.playerHeight;
@@ -137,20 +135,26 @@ export class FirstPersonControls {
     }
     
     _updateGravity(delta) {
-        this.isGrounded = false;
         const playerPosition = this.controls.object.position;
         this.downRaycaster.set(playerPosition, new THREE.Vector3(0, -1, 0));
         const intersections = this.downRaycaster.intersectObjects(this.collisionObjects, true);
         
-        // ✨ CAMBIO: Usamos el offset para la comprobación del suelo
-        if (intersections.length > 0 && intersections[0].distance <= this.playerHeight + this.groundCheckOffset) {
-            // Si estamos en el suelo o muy cerca, nos ajustamos a la altura correcta
-            if (intersections[0].distance < this.playerHeight - 0.01) {
-                playerPosition.y = intersections[0].point.y + this.playerHeight;
-            }
-            this.velocity.y = 0;
+        const onObject = intersections.length > 0;
+        
+        // ✨ CAMBIO: Lógica de gravedad simplificada y más robusta.
+        if (onObject && intersections[0].distance < this.playerHeight) {
             this.isGrounded = true;
+            // Detiene la velocidad vertical solo si estamos cayendo.
+            if (this.velocity.y < 0) {
+                this.velocity.y = 0;
+            }
+            // Ajusta al jugador al suelo para evitar que se hunda o flote.
+            playerPosition.y = intersections[0].point.y + this.playerHeight;
+        } else {
+            this.isGrounded = false;
         }
+    
+        // Aplica la gravedad solo si no estamos en el suelo.
         if (!this.isGrounded) {
             this.velocity.y -= this.gravity * delta;
         }
@@ -198,14 +202,11 @@ export class FirstPersonControls {
     }
     
     _updateHeadBob(delta) {
-        // ✨ CAMBIO: El head-bob ahora solo modifica la cámara, no el objeto del jugador.
-        // Esto lo convierte en un efecto 100% visual y lo desacopla de la física.
         if (this.isGrounded && (Math.abs(this.velocity.x) > 0.1 || Math.abs(this.velocity.z) > 0.1)) {
             this.headBobTimer += delta * this.headBobFrequency;
             this.camera.position.y = Math.sin(this.headBobTimer) * this.headBobAmplitude;
         } else {
             this.headBobTimer = 0;
-            // Suaviza el retorno a la posición original
             this.camera.position.y = THREE.MathUtils.lerp(this.camera.position.y, 0, delta * 10);
         }
     }

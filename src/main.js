@@ -70,7 +70,6 @@ function initializeBaseScene() {
 
     camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
     
-    // ✨ CORRECCIÓN: El renderer debe inicializarse ANTES de pasarlo a los controles.
     const canvas = document.getElementById('webglCanvas');
     renderer = new THREE.WebGLRenderer({
         canvas: canvas,
@@ -80,11 +79,15 @@ function initializeBaseScene() {
     renderer.setPixelRatio(window.devicePixelRatio);
     renderer.shadowMap.enabled = true;
 
-    // Ahora `renderer.domElement` es válido y se puede pasar a los controles.
     controls = new FirstPersonControls(camera, renderer.domElement);
     controls.getObject().add(camera); 
     
     scene.add(controls.getObject());
+    
+    // ✨ CAMBIO: Establecer la posición inicial del jugador aquí.
+    // Se pone una altura 'Y' elevada para asegurar que la función _snapToGround funcione correctamente.
+    controls.getObject().position.set(-9.7, 30, 14.3);
+
 
     initUIManager(controls.controls);
 
@@ -118,8 +121,10 @@ async function loadAssetsAndFinalize() {
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
     const collisionObjects = await initSchoolScene(scene, renderer);
+    // ✨ CAMBIO: setCollisionObjects ahora llamará a una función interna para ajustar al jugador al suelo.
     controls.setCollisionObjects(collisionObjects);
-    controls.getObject().position.set(-9.7, 1.7, 14.3);
+    
+    // ✨ CAMBIO: La posición ya no se establece aquí.
 
     pointsOfInterest.forEach(pointData => {
         const point = new InterestPoint(pointData);
