@@ -127,7 +127,7 @@ export class FirstPersonControls {
     
     _snapToGround() {
         const playerPosition = this.controls.object.position;
-        const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, playerPosition.y, playerPosition.z), new THREE.Vector3(0, -1, 0));
+        const snapRaycaster = new THREE.Raycaster(new THREE.Vector3(playerPosition.x, 100, playerPosition.z), new THREE.Vector3(0, -1, 0));
         const intersections = snapRaycaster.intersectObjects(this.collisionObjects, true);
         if (intersections.length > 0) {
             playerPosition.y = intersections[0].point.y + this.playerHeight;
@@ -141,20 +141,16 @@ export class FirstPersonControls {
         
         const onObject = intersections.length > 0;
         
-        // ✨ CAMBIO: Lógica de gravedad simplificada y más robusta.
-        if (onObject && intersections[0].distance < this.playerHeight) {
+        if (onObject && intersections[0].distance <= this.playerHeight + 0.2) {
             this.isGrounded = true;
-            // Detiene la velocidad vertical solo si estamos cayendo.
             if (this.velocity.y < 0) {
                 this.velocity.y = 0;
             }
-            // Ajusta al jugador al suelo para evitar que se hunda o flote.
-            playerPosition.y = intersections[0].point.y + this.playerHeight;
+            playerPosition.y = THREE.MathUtils.lerp(playerPosition.y, intersections[0].point.y + this.playerHeight, delta * 15);
         } else {
             this.isGrounded = false;
         }
     
-        // Aplica la gravedad solo si no estamos en el suelo.
         if (!this.isGrounded) {
             this.velocity.y -= this.gravity * delta;
         }

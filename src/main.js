@@ -84,10 +84,9 @@ function initializeBaseScene() {
     
     scene.add(controls.getObject());
     
-    // ✨ CAMBIO: Establecer la posición inicial del jugador aquí.
-    // Se pone una altura 'Y' elevada para asegurar que la función _snapToGround funcione correctamente.
-    controls.getObject().position.set(-9.7, 30, 14.3);
-
+    // ✨ CAMBIO: Se establece una posición inicial razonable.
+    // La función _snapToGround se encargará del ajuste final.
+    controls.getObject().position.set(-9.7, 5, 14.3);
 
     initUIManager(controls.controls);
 
@@ -121,10 +120,7 @@ async function loadAssetsAndFinalize() {
     if (loadingOverlay) loadingOverlay.classList.remove('hidden');
 
     const collisionObjects = await initSchoolScene(scene, renderer);
-    // ✨ CAMBIO: setCollisionObjects ahora llamará a una función interna para ajustar al jugador al suelo.
     controls.setCollisionObjects(collisionObjects);
-    
-    // ✨ CAMBIO: La posición ya no se establece aquí.
 
     pointsOfInterest.forEach(pointData => {
         const point = new InterestPoint(pointData);
